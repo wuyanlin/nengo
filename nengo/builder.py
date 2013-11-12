@@ -847,7 +847,10 @@ def build_probe(probe, dimensions, model):
 
     # We put a list here so that the simulator can fill it
     # as it simulates the model
-    model.params[probe] = []
+    if probe.maxlen is None:
+        model.params[probe] = []
+    else:
+        model.params[probe] = collection.deque([], maxlen=probe.maxlen)
 
 Builder.register_builder(build_probe, nengo.objects.Probe)
 

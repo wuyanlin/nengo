@@ -737,7 +737,7 @@ class Probe(object):
     }
 
     def __init__(self, target, attr=None, sample_every=None, synapse=None,
-                 **kwargs):
+                 maxlen=None, **kwargs):
         if attr is None:
             try:
                 attr = self.DEFAULTS[target.__class__]
@@ -753,6 +753,7 @@ class Probe(object):
         self.label = "Probe(%s.%s)" % (target.label, attr)
         self.sample_every = sample_every
         self.synapse = synapse
+        self.maxlen = maxlen
 
         # Probes add themselves to an object through target.probe in order to
         # be built into the model.
