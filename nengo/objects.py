@@ -475,6 +475,11 @@ class Connection(NengoObject):
         Post-synaptic time constant (PSTC) to use for filtering.
     function : callable
         Function to compute using the pre population (pre must be Ensemble).
+    learning_rule : LearningRule
+         Method of modifying the connection weights during simulation.
+    modulatory : bool
+         Specifies whether the connection is modulatory (does not physically
+         connect to post, for use by learning rules), or not (default).
     probes : dict
         description TODO
     transform : array_like, shape (post_size, pre_size)
@@ -485,7 +490,7 @@ class Connection(NengoObject):
     """
 
     def __init__(self, pre, post, filter=0.005, transform=1.0,
-                 modulatory=False, **kwargs):
+                 modulatory=False, learning_rule=None, **kwargs):
         if not isinstance(pre, ObjView):
             pre = ObjView(pre)
         if not isinstance(post, ObjView):
@@ -498,6 +503,7 @@ class Connection(NengoObject):
 
         self.filter = filter
         self.modulatory = modulatory
+        self.learning_rule = learning_rule
 
         # don't check shapes until we've set all parameters
         self._skip_check_shapes = True
@@ -705,6 +711,78 @@ class Neurons(object):
             raise NotImplementedError(
                 "Probe target '%s' is not probable" % probe.attr)
         return probe
+
+
+class LearningRule(object):
+    """Base class for all learning rule objects.
+
+    To use a learning rule, pass it as a learning_rule keyword argument to
+    the Connection that you want to do learning.
+
+    Example:
+        nengo.Connection(a, b, learning_rule=nengo.PES(error))
+
+    Parameters
+    ----------
+    label : string, optional
+        A name for the learning rule.
+
+    Attributes
+    ----------
+    label : string
+        Given label, or None.
+    """
+
+    def __init__(self, label=None):
+        self.label = label
+
+    def __str__(self):
+        return "%s: %s" % (self.__class__.__name__, self.label)
+
+    def __repr__(self):
+        return str(self)
+
+
+class PES(LearningRule):
+    """Prescribed Error Sensitivity Learning Rule
+
+    Modifies a connection's decoders to minimize an error signal.
+
+    Parameters
+    ----------
+    error : NengoObject
+        The Node, Ensemble, or Neurons providing the error signal. Must be
+        connectable to the post-synaptic object that is being used for this
+        learning rule.
+    learning_rate : float, optional
+        A scalar indicating the rate at which decoders will be adjusted.
+        Defaults to 1e-5.
+    label : string, optional
+        A name for the learning rule. Defaults to None.
+
+    Attributes
+    ----------
+    label : string
+        The given label.
+    error : NengoObject
+        The given error Node, Ensemble, or Neurons.
+    learning_rate : float
+        The given learning rate.
+    error_connection : Connection
+        The modulatory connection created to project the error signal.
+    """
+
+    def __init__(self, error, learning_rate=1e-5, label=None):
+        self.error = error
+        self.learning_rate = learning_rate
+
+        # TODO: With modulatory connections, the 'post' doesn't matter as long
+        # as it has compatible dimensions with the pre, because the builder
+        # detaches the connection from the post.
+        self.error_connection = Connection(
+            self.error, self.error, modulatory=True)
+
+        super(PES, self).__init__(label)
 
 
 class Probe(object):

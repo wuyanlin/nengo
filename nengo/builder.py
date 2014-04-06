@@ -672,6 +672,9 @@ class Model(object):
         self.sig_in = {}
         self.sig_out = {}
 
+        # Signals needed to build learning rules
+        self.sig_decoder = {}  # connection -> decoder signal
+
         self.dt = dt
         self.label = label
         self.seed = seed
@@ -708,6 +711,7 @@ class Builder(object):
       1. Ensembles, Nodes, Neurons, Probes
       2. Subnetworks (recursively)
       3. Connections
+      4. Learning Rules
     """
 
     # A decorator that registers the given Nengo object class with the function
@@ -779,6 +783,12 @@ class Builder(object):
         logger.info("Building connections")
         for conn in network.connections:
             self.build(conn)
+
+        # 4. Then learning rules
+        logger.info("Building learning rules")
+        for conn in network.connections:
+            if conn.learning_rule is not None:
+                self.build(conn.learning_rule, conn)
 
     @builds(nengo.objects.Ensemble)  # noqa
     def build_ensemble(self, ens):
@@ -1011,6 +1021,7 @@ class Builder(object):
                 Signal(o_coef, name="o_coef"),
                 signal,
                 tag="%s decoding" % conn.label))
+            self.model.sig_decoder[conn] = decoder_signal
         else:
             # Direct connection
             signal = self.model.sig_in[conn]
@@ -1024,8 +1035,7 @@ class Builder(object):
             self.model.sig_out[conn] = Signal(
                 np.zeros(self.model.sig_out[conn].size),
                 name="%s.mod_output" % conn.label)
-            # Add reset operator?
-            # TODO: add unit test
+            self.model.operators.append(Reset(self.model.sig_out[conn]))
 
         # Add operator for transform
         if isinstance(conn.post, nengo.objects.Neurons):
@@ -1112,3 +1122,24 @@ class Builder(object):
                                            voltage=voltage,
                                            refractory_time=refractory_time))
         return rval
+
+    @builds(nengo.objects.PES)
+    def build_pes(self, pes, conn):
+        activities = self.model.sig_out[conn.pre]
+        error = self.model.sig_out[pes.error_connection]
+        scaled_error = Signal(np.zeros(error.shape), name="PES:scaled_error")
+        shaped_scaled_error = SignalView(scaled_error, (error.size, 1), (1, 1),
+                                         0, name="PES:shaped_scaled_error")
+        shaped_activities = SignalView(activities, (1, activities.size),
+                                       (1, 1), 0, name="PES:shaped_activites")
+
+        decoders = self.model.sig_decoder[conn]
+        lr_signal = Signal(pes.learning_rate, name="PES:learning_rate")
+
+        self.model.operators.append(Reset(scaled_error))
+        self.model.operators.append(
+            DotInc(lr_signal, error, scaled_error, tag="PES:scale_error"))
+        self.model.operators.append(
+            ProdUpdate(shaped_scaled_error, shaped_activities,
+                       Signal(1, name="PES:one"), decoders,
+                       tag="PES:update_decoder"))
