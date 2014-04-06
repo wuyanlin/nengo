@@ -4,6 +4,8 @@ import numpy as np
 import pytest
 
 import nengo
+from nengo.utils.distributions import UniformHypersphere
+from nengo.utils.ensemble import encoders
 from nengo.utils.functions import piecewise
 from nengo.utils.numpy import filtfilt
 from nengo.utils.testing import Plotter, allclose
@@ -252,6 +254,44 @@ def test_pes_learning_rule(Simulator, nl_nodirect):
     assert np.allclose(sim.data[u_learned_p][-1], learned_vector, atol=0.05)
     assert np.allclose(
         sim.data[e_p][-1], np.zeros(len(learned_vector)), atol=0.05)
+
+
+def test_voja_learning_rule(Simulator, nl_nodirect):
+    n = 200
+
+    def normalize(x):
+        return x / np.linalg.norm(x)
+
+    learned_vector = normalize([0.3, -0.4, 0.6])
+    d = len(learned_vector)
+    num_change = 100  # Number of encoders to modify
+
+    m = nengo.Network(seed=3902)
+    np.random.seed(123)  # for encoder generation
+    with m:
+        u = nengo.Node(output=learned_vector)
+        # Set the first num_change neurons to always fire (-1 intercept) with
+        # random encoders, and the rest to not fire for learned_vector
+        # (0 intercept, with an encoder that gives a -1 dot product)
+        intercepts = np.asarray([-1]*num_change + [0]*(n - num_change))
+        encoders_before = np.append(
+            UniformHypersphere(d, surface=True).sample(num_change),
+            [-learned_vector] * (n - num_change), axis=0)
+        a = nengo.Ensemble(
+            nl_nodirect(n), dimensions=d,
+            encoders=encoders_before, intercepts=intercepts)
+        nengo.Connection(u, a, learning_rule=nengo.Voja(learning_rate=1e-2))
+
+    sim = Simulator(m)
+    sim.run(3.)
+
+    # Check that the first num_change neurons have had their encoders shift
+    # to learned_vector, and that the rest stayed the same.
+    encoders_after = encoders(a, sim)
+    assert np.allclose(encoders_after[:num_change],
+                       [learned_vector] * num_change, atol=0.01)
+    assert np.allclose(encoders_after[num_change:],
+                       encoders_before[num_change:])
 
 
 def test_dimensionality_errors(nl_nodirect):
