@@ -146,3 +146,51 @@ class Oja(LearningRule):
         self.beta = beta
 
         self.label = label
+
+
+class Voja(LearningRule):
+    """Simplified vector form of Oja's Learning Rule.
+
+    Moves the active neuron's encoders towards the current x.
+
+    Parameters
+    ----------
+    post_tau : float, optional
+        Filter to apply to the post-synaptic activity. Defaults to 0.001.
+    learning_rate : float, optional
+        A scalar indicating the rate at which encoders will be adjusted.
+        Defaults to 1e-5.
+    learning : NengoObject, optional
+        Node, Ensemble, or Neurons, providing a scalar to multiply with the
+        learning rate. Defaults to None, in which case the scalar is 1.0.
+    learning_tau : float, optional
+        Filter to use for modulatory learning connection. Defaults to 0.001.
+    label : string, optional
+        A name for the learning rule. Defaults to None.
+
+    Attributes
+    ----------
+    label : string
+        The given label.
+    post_tau: float
+        The given post_tau.
+    learning_rate : float
+        The given learning rate.
+    learning_connection : Connection
+        The modulatory connection created to project the learning scalar,
+        or None if learning was None.
+    """
+
+    # TODO: modifies should be with respect to post ensemble in this case
+    modifies = ['Ensemble', 'Node', 'Neurons']
+
+    def __init__(self, post_tau=0.001, learning_rate=Default, learning=None,
+                 learning_tau=0.001, label=None):
+        self.post_tau = post_tau
+
+        # TODO: raise ValueError if learning is not a scalar
+        self.learning_connection = Connection(  # noqa: F821
+            learning, learning, synapse=learning_tau,
+            modulatory=True) if learning else None
+
+        super(Voja, self).__init__(learning_rate, label)

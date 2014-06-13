@@ -7,6 +7,7 @@ import nengo
 from nengo.utils.functions import piecewise
 from nengo.utils.numpy import filtfilt
 from nengo.utils.testing import Plotter, allclose
+from nengo.utils.distributions import UniformHypersphere
 
 logger = logging.getLogger(__name__)
 
@@ -426,6 +427,48 @@ def test_unsupervised_learning_rule(Simulator, nl_nodirect, learning_rule):
 
     sim = Simulator(m)
     sim.run(1.)
+
+
+def test_voja_learning_rule(Simulator, nl_nodirect):
+    n = 200
+
+    def normalize(x):
+        return x / np.linalg.norm(x)
+
+    def encoders(ens, sim):
+        return sim.signals[sim.model.sig[ens]['encoders']] / (
+            sim.data[ens].gain / ens.radius)[:, np.newaxis]
+
+    learned_vector = normalize([0.3, -0.4, 0.6])
+    d = len(learned_vector)
+    num_change = 100  # Number of encoders to modify
+
+    m = nengo.Network(seed=3902)
+    np.random.seed(123)  # for encoder generation
+    with m:
+        m.config[nengo.Ensemble].neuron_type = nl_nodirect()
+        u = nengo.Node(output=learned_vector)
+        # Set the first num_change neurons to always fire (-1 intercept) with
+        # random encoders, and the rest to not fire for learned_vector
+        # (0 intercept, with an encoder that gives a -1 dot product)
+        intercepts = np.asarray([-1]*num_change + [0]*(n - num_change))
+        encoders_before = np.append(
+            UniformHypersphere(d, surface=True).sample(num_change),
+            [-learned_vector] * (n - num_change), axis=0)
+        a = nengo.Ensemble(
+            n, dimensions=d, encoders=encoders_before, intercepts=intercepts)
+        nengo.Connection(u, a, learning_rule=nengo.Voja(learning_rate=1e-2))
+
+    sim = Simulator(m)
+    sim.run(3.)
+
+    # Check that the first num_change neurons have had their encoders shift
+    # to learned_vector, and that the rest stayed the same.
+    encoders_after = encoders(a, sim)
+    assert np.allclose(encoders_after[:num_change],
+                       [learned_vector] * num_change, atol=0.02)
+    assert np.allclose(encoders_after[num_change:],
+                       encoders_before[num_change:])
 
 
 def test_vector(Simulator, nl):

@@ -845,6 +845,74 @@ class SimOja(Operator):
         return step
 
 
+class SimVoja(Operator):
+    """Simulates a simplified version of Oja's rule in the vector space.
+
+    Moves the active encoders towards the decoded value. This is an analog to
+    Oja's rule in the vector space, making it more computationally efficient
+    and predictable.
+
+    Let:
+        y be the post-synpatic activity
+        a be the pre-synaptic activity
+        s be the normalization factor, scale
+        W be the connection weight matrix
+        x be the decoded pre-synaptic activity
+        e be the encoders
+
+    Then Oja's rule is normally:
+        W += outer(y, a) - s y^2 W
+
+    Substituting W -> e, a -> x, gives:
+        e += outer(y, x) - s y^2 e
+
+    Parameters
+    ----------
+    post_filtered : Signal
+        Filtered post-synaptic activity signal (y).
+    scaled_encoders : Signal
+        2d array of encoders, scaled by gain / radius. Updated by rule.
+    gain : np.ndarray
+        1d array of gains for each post-synaptic neuron.
+    radius : float
+        Radius of post-synaptic ensemble.
+    x : Signal
+        Decoded activity from pre-synaptic ensemble, np.dot(d, a).
+    learning_signal : Signal
+        Scalar signal to be multiplied by the learning_rate. Expected to range
+        between 0 and 1 to turn learning off or on, respectively.
+    """
+
+    def __init__(self, post_filtered, scaled_encoders, gain, radius, x,
+                 learning_signal, learning_rate):
+        self.post_filtered = post_filtered
+        self.scaled_encoders = scaled_encoders
+        self.gain = gain
+        self.radius = radius
+        self.x = x
+        self.learning_signal = learning_signal
+        self.learning_rate = learning_rate
+
+        self.reads = [post_filtered, x, learning_signal]
+        self.updates = [scaled_encoders]
+        self.sets = []
+        self.incs = []
+
+    def make_step(self, dct, dt):
+        post_filtered = dct[self.post_filtered]
+        scaled_encoders = dct[self.scaled_encoders]
+        x = dct[self.x]
+        learning_signal = dct[self.learning_signal]
+        learning_rate = self.learning_rate
+        encoder_scale = (self.gain / self.radius)[:, np.newaxis]
+
+        def step():
+            scaled_encoders[...] += learning_rate * learning_signal * (
+                encoder_scale * np.outer(post_filtered, x) -
+                post_filtered[:, np.newaxis] * scaled_encoders)
+        return step
+
+
 class Model(object):
     """Output of the Builder, used by the Simulator."""
 
@@ -1365,7 +1433,11 @@ def build_connection(conn, model, config):  # noqa: C901
                         model.sig[conn]['out'],
                         tag=conn.label))
 
-    if conn.learning_rule:
+    if (len(conn.learning_rule) == 1 and
+       isinstance(conn.learning_rule[0], nengo.Voja)):
+        # TODO: this is a terrible hack
+        pass
+    elif conn.learning_rule:
         # Forcing update of signal that is modified by learning rules.
         # Learning rules themselves apply DotIncs.
 
@@ -1593,3 +1665,28 @@ def build_oja(oja, conn, model, config):
     model.params[oja] = None
 
 Builder.register_builder(build_oja, nengo.learning_rules.Oja)
+
+
+def build_voja(voja, conn, model, config):
+    post_activities = model.sig[conn.post]['out']
+    # TODO: Is this double filtering?
+    post_filtered = filtered_signal(
+        voja, post_activities, voja.post_tau, model, config)
+
+    if voja.learning_connection:
+        learning_signal = model.sig[voja.learning_connection]['out']
+    else:
+        learning_signal = Signal(1, name="Voja:one")
+
+    model.operators.append(
+        SimVoja(post_filtered=post_filtered,
+                scaled_encoders=model.sig[conn.post]['encoders'],
+                gain=model.params[conn.post].gain,
+                radius=conn.post.radius,
+                x=model.sig[conn]['out'],
+                learning_signal=learning_signal,
+                learning_rate=voja.learning_rate))
+
+    model.params[voja] = None
+
+Builder.register_builder(build_voja, nengo.learning_rules.Voja)
