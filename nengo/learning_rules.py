@@ -189,7 +189,8 @@ class Voja(LearningRule):
         self.post_tau = post_tau
 
         # TODO: raise ValueError if learning is not a scalar
-        self.learning_connection = Connection(  # noqa: F821
+        from nengo.objects import Connection  # Hack
+        self.learning_connection = Connection(
             learning, learning, synapse=learning_tau,
             modulatory=True) if learning else None
 
