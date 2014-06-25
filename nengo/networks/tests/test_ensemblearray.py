@@ -89,106 +89,11 @@ def _mmul_transforms(A_shape, B_shape, C_dim):
     return transformA, transformB
 
 
-def test_matrix_mul(Simulator, nl):
-    N = 100
-
-    Amat = np.asarray([[.5, -.5]])
-    Bmat = np.asarray([[0, -1.], [.7, 0]])
-    radius = 1
-
-    model = nengo.Network(label='Matrix Multiplication', seed=123)
-    with model:
-        model.config[nengo.Ensemble].neuron_type = nl()
-        A = nengo.networks.EnsembleArray(
-            N, Amat.size, radius=radius, label="A")
-        B = nengo.networks.EnsembleArray(
-            N, Bmat.size, radius=radius, label="B")
-
-        inputA = nengo.Node(output=Amat.ravel())
-        inputB = nengo.Node(output=Bmat.ravel())
-        nengo.Connection(inputA, A.input)
-        nengo.Connection(inputB, B.input)
-        A_p = nengo.Probe(A.output, sample_every=0.01, synapse=0.01)
-        B_p = nengo.Probe(B.output, sample_every=0.01, synapse=0.01)
-
-        C = nengo.networks.EnsembleArray(N,
-                                         Amat.size * Bmat.shape[1],
-                                         ens_dimensions=2,
-                                         radius=1.5 * radius)
-
-        for ens in C.ensembles:
-            ens.encoders = np.tile([[1, 1], [-1, 1], [1, -1], [-1, -1]],
-                                   (ens.n_neurons // 4, 1))
-
-        transformA, transformB = _mmul_transforms(
-            Amat.shape, Bmat.shape, C.dimensions)
-
-        nengo.Connection(A.output, C.input, transform=transformA)
-        nengo.Connection(B.output, C.input, transform=transformB)
-
-        D = nengo.networks.EnsembleArray(N,
-                                         Amat.shape[0] * Bmat.shape[1],
-                                         radius=radius)
-
-        transformC = np.zeros((D.dimensions, Bmat.size))
-        for i in range(Bmat.size):
-            transformC[i // Bmat.shape[0]][i] = 1
-
-        prod = C.add_output("product", lambda x: x[0] * x[1])
-
-        nengo.Connection(prod, D.input, transform=transformC)
-        D_p = nengo.Probe(D.output, sample_every=0.01, synapse=0.01)
-
-    sim = Simulator(model)
-    sim.run(1)
-
-    with Plotter(Simulator, nl) as plt:
-        t = sim.trange(dt=0.01)
-        plt.plot(t, sim.data[D_p])
-        for d in np.dot(Amat, Bmat).flatten():
-            plt.axhline(d, color='k')
-        plt.savefig('test_ensemble_array.test_matrix_mul.pdf')
-        plt.close()
-
-    atol, rtol = .1, .01
-    assert np.allclose(sim.data[A_p][50:, 0], 0.5, atol=atol, rtol=rtol)
-    assert np.allclose(sim.data[A_p][50:, 1], -0.5, atol=atol, rtol=rtol)
-
-    assert np.allclose(sim.data[B_p][50:, 0], 0, atol=atol, rtol=rtol)
-    assert np.allclose(sim.data[B_p][50:, 1], -1, atol=atol, rtol=rtol)
-    assert np.allclose(sim.data[B_p][50:, 2], .7, atol=atol, rtol=rtol)
-    assert np.allclose(sim.data[B_p][50:, 3], 0, atol=atol, rtol=rtol)
-
-    Dmat = np.dot(Amat, Bmat)
-    for i in range(Amat.shape[0]):
-        for k in range(Bmat.shape[1]):
-            assert np.allclose(
-                sim.data[D_p][-10:, i * Bmat.shape[1] + k],
-                Dmat[i, k],
-                atol=atol, rtol=rtol)
-
-
 def test_arguments():
     """Make sure EnsembleArray accepts the right arguments."""
     with pytest.raises(TypeError):
         nengo.networks.EnsembleArray(nengo.LIF(10), 1, dimensions=2)
 
-
-def test_neuronconnection(Simulator, nl):
-    with nengo.Network(seed=123) as net:
-        net.config[nengo.Ensemble].neuron_type = nl()
-
-        input = nengo.Node([-10] * 20)
-        ea = nengo.networks.EnsembleArray(10, 2)
-
-        nengo.Connection(input, ea.neuron_input)
-
-        p = nengo.Probe(ea.neuron_output)
-
-    s = Simulator(net)
-    s.run(1)
-
-    assert np.all(s.data[p][-1] == 0.0)
 
 if __name__ == "__main__":
     nengo.log(debug=True)

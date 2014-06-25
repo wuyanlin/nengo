@@ -6,3 +6,4 @@ from .oscillator import Oscillator
 from .product import Product
 from .workingmemory import InputGatedMemory
 from .workingmemory import FeedbackGatedMemory
+from .matrix_multiplication import MatrixMult
