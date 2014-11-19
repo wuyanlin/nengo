@@ -2,7 +2,8 @@ import numpy as np
 import pytest
 
 import nengo
-from nengo.learning_rules import LearningRuleTypeParam, PES, BCM, Oja
+from nengo.learning_rules import (LearningRuleTypeParam, PES, BCM, Oja,
+                                  GenericRule)
 from nengo.solvers import LstsqL2nz
 
 
@@ -223,6 +224,40 @@ def test_learningrule_attr(seed):
         assert set(c3.learning_rule) == set(r3)  # assert same keys
         for key in r3:
             check_rule(c3.learning_rule[key], c3, r3[key])
+
+
+def test_generic_rule(Simulator, nl_nodirect, seed):
+    n = 200
+    learned_vector = [0.5, -0.5]
+
+    m = nengo.Network(seed=seed)
+    with m:
+        m.config[nengo.Ensemble].neuron_type = nl_nodirect()
+        u = nengo.Node(output=learned_vector)
+        a = nengo.Ensemble(n, dimensions=2)
+        u_learned = nengo.Ensemble(n, dimensions=2)
+        e = nengo.Node(size_in=2+n)
+
+        nengo.Connection(u, a)
+        nengo.Connection(u_learned, e[:2], transform=-1)
+        nengo.Connection(u, e[:2])
+        nengo.Connection(a.neurons, e[2:])
+
+        def pes_func(decoders, data, l_rate=1e-3):
+            return l_rate * np.outer(data[:2], data[2:]) 
+
+        nengo.Connection(a, u_learned,
+                         learning_rule_type=GenericRule(pes_func, e))
+
+        u_learned_p = nengo.Probe(u_learned, synapse=0.1)
+        e_p = nengo.Probe(e, synapse=0.1)
+
+    sim = Simulator(m)
+    sim.run(1.)
+
+    tmask = sim.trange() > 0.9
+    assert np.allclose(sim.data[u_learned_p][tmask], learned_vector, atol=0.05)
+    assert np.allclose(sim.data[e_p][tmask,:2], 0, atol=0.05)
 
 
 if __name__ == "__main__":

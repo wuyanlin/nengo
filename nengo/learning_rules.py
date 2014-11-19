@@ -111,6 +111,27 @@ class Oja(LearningRuleType):
         super(Oja, self).__init__(learning_rate)
 
 
+class GenericRule(LearningRuleType):
+    """Learning rule implemented by generic Python function.
+
+    Parameters
+    ----------
+    function : callable
+        Accepts previous values of learned array and a data vector
+        as input, outputs a delta for the learned array.
+    data_node : Node
+        Output of this node will be the data vector input to the
+        learning function.
+    """
+
+    def __init__(self, function, data_node):
+        self.modifies = ['Ensemble', 'Neurons']
+        self.function = function
+        self.data_node = data_node
+
+        super(GenericRule, self).__init__()
+
+
 class LearningRuleTypeParam(Parameter):
     def validate(self, instance, rule):
         if is_iterable(rule):

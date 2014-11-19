@@ -6,7 +6,7 @@ from nengo.builder.signal import Signal
 from nengo.builder.synapses import filtered_signal
 from nengo.connection import LearningRule
 from nengo.ensemble import Ensemble, Neurons
-from nengo.learning_rules import BCM, Oja, PES
+from nengo.learning_rules import BCM, Oja, PES, GenericRule
 
 
 class SimBCM(Operator):
@@ -69,6 +69,27 @@ class SimOja(Operator):
             # perform update
             delta[...] += np.outer(alpha * post_filtered, pre_filtered)
 
+        return step
+
+
+class SimGenericRule(Operator):
+    """Compute change in prev based on function(prev, data)."""
+
+    def __init__(self, prev, data, output, function):
+        self.sets = []
+        self.incs = []
+        self.reads = [data, prev]
+        self.updates = [output]
+
+        self.prev = prev
+        self.output = output
+        self.data = data
+        self.function = function
+
+    def make_step(self, signals, dt, rng):
+        def step():
+            signals[self.output] = self.function(signals[self.prev],
+                                                 signals[self.data])
         return step
 
 
@@ -176,3 +197,20 @@ def build_pes(model, pes, rule):
             tag="PES:Inc Decoder"))
 
     model.params[rule] = None
+
+
+@Builder.register(GenericRule)
+def build_generic_rule(model, gr, rule):
+    conn = rule.connection
+    if isinstance(conn.pre_obj, Ensemble):
+        target = model.sig[conn]['decoders']
+    else:
+        target = model.sig[conn]['transform']
+    model.sig[rule]['delta'] = Signal(np.zeros(target.shape))
+    model.add_op(SimGenericRule(target,
+                                model.sig[gr.data_node]['out'],
+                                model.sig[rule]['delta'],
+                                gr.function))
+    model.add_op(ElementwiseInc(model.sig['common'][1],
+                                model.sig[rule]['delta'],
+                                target))
