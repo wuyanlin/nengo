@@ -129,9 +129,9 @@ def rasterplot(time, spikes, ax=None, use_eventplot=False, **kwargs):  # noqa: C
         kwargs.setdefault('marker', '|')
         # Default markersize determined by matching eventplot
         ax_height = axis_size(ax)[1]
-        markersize = max(ax_height * 0.965 / n_neurons, 1)
+        markersize = max(ax_height * 0.8 / n_neurons, 1)
         # For 1 - 3 neurons, we need an extra fudge factor to match eventplot
-        markersize -= max(4 - n_neurons, 0) ** 2 * ax_height * 0.005
+        markersize -= max(4 - n_neurons, 0) ** 2 * ax_height * 0.02
         kwargs.setdefault('markersize', markersize)
         kwargs.setdefault('markeredgewidth', 1)
 
