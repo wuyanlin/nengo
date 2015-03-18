@@ -112,7 +112,28 @@ class Lowpass(LinearFilter):
                 LinearFilter.no_den_step, output=output, b=1.)
         return super(Lowpass, self).make_step(dt, output)
 
+class Triangle(Synapse):
 
+    def __init__(self, t):
+        self.t = t
+        
+    def __repr__(self):
+        return "%s(%s)" % (self.__class__.__name__, self.t)
+
+    def make_step(self, dt, output):
+        taps = int(np.round(self.t / float(dt))) + 1
+        num = np.arange(taps, 0, -1, dtype=output.dtype)
+        num /= num.sum()
+
+        x = collections.deque(maxlen=taps)
+        def step(signal, output=output, x=x, num=num):
+            output[...] = 0
+            x.appendleft(np.array(signal))
+            for k, xk in enumerate(x):
+                output += num[k] * xk
+
+        return step
+        
 class Alpha(LinearFilter):
     """Alpha-function filter synapse.
 
@@ -154,7 +175,7 @@ def filt(signal, synapse, dt, axis=0, x0=None, copy=True):
     ----------
     signal : array_like
         The signal to filter.
-    syanpse : float, Synapse
+    synapse : float, Synapse
         The synapse model with which to filter the signal.
         If a float is passed in, it will be interpreted as the ``tau``
         parameter of a lowpass filter.
