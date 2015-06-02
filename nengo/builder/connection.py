@@ -190,8 +190,8 @@ def build_connection(model, conn):
         gain = model.params[conn.post_obj.ensemble].gain[post_slice]
         weights = multiply(gain, weights)
 
-    if conn.learning_rule is not None and weights.ndim < 2:
-        raise ValueError("Learning connection must have full transform matrix")
+    #if conn.learning_rule is not None and weights.ndim < 2:
+    #    raise ValueError("Learning connection must have full transform matrix")
 
     model.sig[conn]['weights'] = Signal(weights, name="%s.weights" % conn)
     signal = Signal(np.zeros(signal_size), name="%s.weighted" % conn)

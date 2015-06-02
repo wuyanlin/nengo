@@ -126,6 +126,10 @@ Release History
   (`#754 <https://github.com/nengo/nengo/pull/754>`_)
 - ``Config.configures`` now accepts multiple classes rather than
   just one. (`#842 <https://github.com/nengo/nengo/pull/842>`_)
+- Added the ``Voja`` (Vector Oja) learning rule type, which updates an
+  ensemble's encoders to fire selectively for its inputs. (see
+  ``examples/learning/learn_associations.ipynb``).
+  (`#727 <https://github.com/nengo/nengo/issues/727>`_)
 
 **Bug fixes**
 
