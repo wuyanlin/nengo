@@ -271,11 +271,7 @@ class Connection(NengoObject):
 
     @property
     def probeable(self):
-        probeables = ["output", "input", "transform"]
-        if isinstance(self.pre, Ensemble):
-            probeables += ["decoders"]
-
-        return probeables
+        return ['output', 'input', 'weights']
 
     @property
     def pre_obj(self):
