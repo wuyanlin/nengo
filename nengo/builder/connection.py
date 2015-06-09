@@ -22,6 +22,17 @@ BuiltConnection = collections.namedtuple(
     'BuiltConnection', ['eval_points', 'solver_info', 'weights'])
 
 
+def get_sliced_signal(signal, s, model):
+    assert signal.ndim == 1
+    if isinstance(s, slice) and (s.step is None or s.step == 1):
+        return signal[s]
+    else:
+        size = np.arange(signal.size)[s].size
+        sliced_signal = Signal(np.zeros(size), name="%s.sliced" % signal.name)
+        model.add_op(SlicedCopy(signal, sliced_signal, a_slice=s))
+        return sliced_signal
+
+
 def get_eval_points(model, conn, rng):
     if conn.eval_points is None:
         return npext.array(
@@ -103,15 +114,15 @@ def build_connection(model, conn):
             (isinstance(conn.pre_obj, Ensemble) and
              isinstance(conn.pre_obj.neuron_type, Direct))):
         # Node or Decoded connection in directmode
-        if (conn.function is None and isinstance(conn.pre_slice, slice) and
-                (conn.pre_slice.step is None or conn.pre_slice.step == 1)):
-            in_signal = model.sig[conn]['in'][conn.pre_slice]
-        else:
+        sliced_signal = get_sliced_signal(in_signal, conn.pre_slice, model)
+
+        if conn.function is not None:
             in_signal = Signal(np.zeros(conn.size_mid), name='%s.func' % conn)
-            fn = ((lambda x: x[conn.pre_slice]) if conn.function is None else
-                  (lambda x: conn.function(x[conn.pre_slice])))
             model.add_op(SimPyFunc(
-                output=in_signal, fn=fn, t_in=False, x=model.sig[conn]['in']))
+                output=in_signal, fn=conn.function,
+                t_in=False, x=sliced_signal))
+        else:
+            in_signal = sliced_signal
 
     elif isinstance(conn.pre_obj, Ensemble):  # Normal decoded connection
         eval_points, activities, targets = build_linear_system(
@@ -132,6 +143,8 @@ def build_connection(model, conn):
             decoders, solver_info = solver(activities, targets, rng=rng)
             decoders = multiply(decoders, transform.T)
         decoders = decoders.T
+    else:
+        in_signal = get_sliced_signal(in_signal, conn.pre_slice, model)
 
     # Add operator for applying weights
     weights = transform if decoders is None else decoders

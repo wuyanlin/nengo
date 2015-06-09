@@ -432,7 +432,7 @@ def test_slicing(Simulator, nl, plt, seed):
 
 def test_neuron_slicing(Simulator, plt, seed, rng):
     N = 6
-
+    sa = slice(None, None, 2)
     sb = slice(None, None, -2)
 
     x = np.array([-1, -0.25, 1])
@@ -444,8 +444,8 @@ def test_neuron_slicing(Simulator, plt, seed, rng):
         b = nengo.Ensemble(N, dimensions=3, radius=1.7)
         nengo.Connection(u, a)
 
-        transform = rng.normal(scale=1e-3, size=(b.n_neurons / 2, a.n_neurons))
-        nengo.Connection(a.neurons, b.neurons[sb], transform=transform)
+        c = nengo.Connection(a.neurons[sa], b.neurons[sb])
+        c.transform = rng.normal(scale=1e-3, size=(c.size_out, c.size_in))
 
         ap = nengo.Probe(a.neurons, synapse=0.03)
         bp = nengo.Probe(b.neurons, synapse=0.03)
@@ -456,7 +456,7 @@ def test_neuron_slicing(Simulator, plt, seed, rng):
 
     x = sim.data[ap]
     y = np.zeros((len(t), b.n_neurons))
-    y[:, sb] = np.dot(x, transform.T)
+    y[:, sb] = np.dot(x[:, sa], c.transform.T)
     y = b.neuron_type.rates(y, sim.data[b].gain, sim.data[b].bias)
 
     plt.plot(t, y, 'k--')
