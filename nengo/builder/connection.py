@@ -19,7 +19,7 @@ from nengo.utils.compat import is_iterable, itervalues
 
 
 BuiltConnection = collections.namedtuple(
-    'BuiltConnection', ['decoders', 'eval_points', 'solver_info', 'weights'])
+    'BuiltConnection', ['eval_points', 'solver_info', 'weights'])
 
 
 def get_eval_points(model, conn, rng):
@@ -172,7 +172,6 @@ def build_connection(model, conn):
         elif rule is not None:
             model.build(rule)
 
-    model.params[conn] = BuiltConnection(decoders=decoders,
-                                         eval_points=eval_points,
+    model.params[conn] = BuiltConnection(eval_points=eval_points,
                                          solver_info=solver_info,
                                          weights=weights)
