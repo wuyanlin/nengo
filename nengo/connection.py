@@ -53,11 +53,11 @@ class ConnectionSolverParam(SolverParam):
     def validate(self, conn, solver):
         super(ConnectionSolverParam, self).validate(conn, solver)
         if solver is not None:
-            if solver.weights and not isinstance(conn.pre, Ensemble):
+            if solver.weights and not isinstance(conn.pre_obj, Ensemble):
                 raise ValueError(
                     "weight solvers only work for connections from ensembles "
                     "(got '%s')" % conn.pre.__class__.__name__)
-            if solver.weights and not isinstance(conn.post, Ensemble):
+            if solver.weights and not isinstance(conn.post_obj, Ensemble):
                 raise ValueError(
                     "weight solvers only work for connections to ensembles "
                     "(got '%s')" % conn.post.__class__.__name__)

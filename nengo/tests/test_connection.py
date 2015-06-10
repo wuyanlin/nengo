@@ -412,7 +412,7 @@ def test_slicing(Simulator, nl, plt, seed):
 
             # also test on weight solver
             b = nengo.Ensemble(N, dimensions=3, radius=1.7)
-            nengo.Connection(a[sa], b[sb], transform=T)
+            nengo.Connection(a[sa], b[sb], transform=T, solver=weight_solver)
             weight_probes.append(nengo.Probe(b, synapse=0.03))
 
     sim = Simulator(m)
@@ -726,21 +726,11 @@ def test_decoder_probe(Simulator):
     with nengo.Network() as net:
         pre = nengo.Ensemble(10, 10)
         post = nengo.Ensemble(10, 10)
-
         c_ens = nengo.Connection(pre, post)
         c_ens_neurons = nengo.Connection(pre, post.neurons)
-        c_neurons_ens = nengo.Connection(pre.neurons, post)
-        c_neurons = nengo.Connection(pre.neurons, post.neurons)
-
-        # OK
         nengo.Probe(c_ens, 'weights')
         nengo.Probe(c_ens_neurons, 'weights')
 
-        # Not OK
-        # with pytest.raises(ValueError):
-        #     nengo.Probe(c_neurons_ens, 'weights')
-        # with pytest.raises(ValueError):
-        #     nengo.Probe(c_neurons, 'weights')
     assert Simulator(net)
 
 

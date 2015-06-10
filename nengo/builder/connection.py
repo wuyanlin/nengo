@@ -14,7 +14,6 @@ from nengo.connection import Connection
 from nengo.ensemble import Ensemble, Neurons
 from nengo.neurons import Direct
 from nengo.node import Node
-from nengo.utils.builder import full_transform
 from nengo.utils.compat import is_iterable, itervalues
 
 
@@ -102,11 +101,11 @@ def build_connection(model, conn):
     model.sig[conn]['in'] = get_prepost_signal(is_pre=True)
     model.sig[conn]['out'] = get_prepost_signal(is_pre=False)
 
-    decoders = None
+    weights = None
     eval_points = None
     solver_info = None
-    transform = full_transform(conn, slice_pre=False, slice_post=False)
     signal_size = conn.size_out
+    post_slice = conn.post_slice
 
     # Figure out the signal going across this connection
     in_signal = model.sig[conn]['in']
@@ -133,31 +132,32 @@ def build_connection(model, conn):
 
         if conn.solver.weights:
             # include transform in solved weights
-            targets = multiply(targets, transform.T)
-            decoders, solver_info = solver(
-                activities, targets, rng=rng,
-                E=model.params[conn.post_obj].scaled_encoders.T)
+            targets = multiply(targets, conn.transform.T)
+            E = model.params[conn.post_obj].scaled_encoders.T[post_slice]
+            decoders, solver_info = solver(activities, targets, rng=rng, E=E)
             model.sig[conn]['out'] = model.sig[conn.post_obj.neurons]['in']
             signal_size = conn.post_obj.neurons.size_in
+            post_slice = Ellipsis  # don't apply slice later
+            weights = decoders.T
         else:
             decoders, solver_info = solver(activities, targets, rng=rng)
-            decoders = multiply(decoders, transform.T)
-        decoders = decoders.T
+            weights = multiply(conn.transform, decoders.T)
     else:
         in_signal = get_sliced_signal(in_signal, conn.pre_slice, model)
 
     # Add operator for applying weights
-    weights = transform if decoders is None else decoders
+    if weights is None:
+        weights = np.array(conn.transform)
 
     if isinstance(conn.post_obj, Neurons):
-        gain = model.params[conn.post_obj.ensemble].gain[conn.post_slice]
+        gain = model.params[conn.post_obj.ensemble].gain[post_slice]
         weights = multiply(gain, weights)
 
     if conn.learning_rule is not None and weights.ndim < 2:
         raise ValueError("Learning connection must have full transform matrix")
 
     model.sig[conn]['weights'] = Signal(weights, name="%s.weights")
-    signal = Signal(np.zeros(signal_size), name="%s.mid")
+    signal = Signal(np.zeros(signal_size), name="%s.weighted")
     model.add_op(Reset(signal))
     op = ElementwiseInc if weights.ndim < 2 else DotInc
     model.add_op(op(model.sig[conn]['weights'],
@@ -171,7 +171,7 @@ def build_connection(model, conn):
 
     # Copy to the proper slice
     model.add_op(SlicedCopy(
-        signal, model.sig[conn]['out'], b_slice=conn.post_slice,
+        signal, model.sig[conn]['out'], b_slice=post_slice,
         kind='inc', tag="%s.gain" % conn))
 
     # Build learning rules
