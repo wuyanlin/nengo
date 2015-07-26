@@ -68,19 +68,36 @@ def test_exponential(scale, shift, high, rng):
         assert abs(np.mean(samples - shift) - scale) < ci
 
 
-@pytest.mark.parametrize("dimensions", [0, 1, 2, 5])
-def test_hypersphere(dimensions, rng):
+@pytest.mark.parametrize("min_magnitude,dimensions",
+                         [(0, 1), (0, 2), (0, 5),
+                          (0.5, 1), (0.5, 2), (0.5, 5), (2, 1), (-2, 1)])
+def test_hypersphere(min_magnitude, dimensions, rng):
     n = 150 * dimensions
-    if dimensions < 1:
-        with pytest.raises(ValueError):
-            dist = dists.UniformHypersphere().sample(1, dimensions)
+    dist = dists.UniformHypersphere(min_magnitude)
+    samples = dist.sample(n, dimensions, rng=rng)
+    assert samples.shape == (n, dimensions)
+    assert np.allclose(np.mean(samples, axis=0), 0, atol=0.1)
+
+    # Check the distribution of sample points (only applicable when
+    # low < 1)
+    if min_magnitude < 1:
+        hist, _ = np.histogramdd(samples, bins=8)
+        # Use 8 bins to allow for the min_magnitude=0.5 case
+        assert np.allclose(hist[hist > 0] - np.mean(hist[hist > 0]), 0,
+                           atol=0.1 * n)
+
+    # Test if the distribution's min_magnitude value is set correctly
+    # wrt the provided min_magnitude value
+    if min_magnitude < 0:
+        assert dist.min_magnitude == 0
+    if min_magnitude > 1:
+        assert dist.min_magnitude == 1
+
+    # Check that sampled vector magnitudes are correct
+    if min_magnitude <= 1:
+        assert np.all(npext.norm(samples, axis=1) >= min_magnitude)
     else:
-        dist = dists.UniformHypersphere()
-        samples = dist.sample(n, dimensions, rng=rng)
-        assert samples.shape == (n, dimensions)
-        assert np.allclose(np.mean(samples, axis=0), 0, atol=0.1)
-        hist, _ = np.histogramdd(samples, bins=5)
-        assert np.allclose(hist - np.mean(hist), 0, atol=0.1 * n)
+        assert np.allclose(npext.norm(samples, axis=1), 1)
 
 
 @pytest.mark.parametrize("dimensions", [1, 2, 5])
@@ -91,6 +108,11 @@ def test_hypersphere_surface(dimensions, rng):
     assert samples.shape == (n, dimensions)
     assert np.allclose(npext.norm(samples, axis=1), 1)
     assert np.allclose(np.mean(samples, axis=0), 0, atol=0.25 / dimensions)
+
+
+def test_hypersphere_dimension_fail(rng):
+    with pytest.raises(ValueError):
+        dists.UniformHypersphere(0).sample(1, 0)
 
 
 @pytest.mark.parametrize("weights", [None, [5, 1, 2, 9], [3, 2, 1, 0]])
