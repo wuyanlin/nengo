@@ -105,5 +105,5 @@ class FunctionSpace(object):
     def make_stimulus_node(self):
         """Generate a Node that can control function parameters."""
         def stimulus(t, x):
-            return self.project(self.function(self.pts, *x[1:]) * x[0])
-        return nengo.Node(stimulus, size_in=self.n_params + 1)
+            return self.project(self.function(self.pts, *x))
+        return nengo.Node(stimulus, size_in=self.n_params)
