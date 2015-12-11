@@ -206,8 +206,8 @@ class UniformHypersphere(Distribution):
         self.surface = surface
 
     def __repr__(self):
-        return "UniformHypersphere(min_magnitude=%r%s)" % (
-            self.min_magnitude, ", surface=True" if self.surface else "")
+        return "UniformHypersphere(min_magnitude=%s%r)" % (
+            ", surface=True" if self.surface else "", self.min_magnitude,)
 
     def sample(self, n, d, rng=np.random):
         if d is None or d < 1:  # check this, since other dists allow d = None

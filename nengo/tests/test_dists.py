@@ -70,13 +70,21 @@ def test_exponential(scale, shift, high, rng):
 
 @pytest.mark.parametrize("min_magnitude,dimensions",
                          [(0, 1), (0, 2), (0, 5),
-                          (0.5, 1), (0.5, 2), (0.5, 5), (2, 1), (-2, 1)])
+                          (0.5, 1), (0.5, 2), (0.5, 5)])
 def test_hypersphere(min_magnitude, dimensions, rng):
     n = 150 * dimensions
-    dist = dists.UniformHypersphere(min_magnitude)
+    dist = dists.UniformHypersphere(min_magnitude=min_magnitude)
     samples = dist.sample(n, dimensions, rng=rng)
     assert samples.shape == (n, dimensions)
     assert np.allclose(np.mean(samples, axis=0), 0, atol=0.1)
+
+
+@pytest.mark.parametrize("min_magnitude,dimensions",
+                         [(0.5, 1), (2, 1), (-2, 1)])
+def test_hypershpere_min_magnitude(min_magnitude, dimensions, rng):
+    n = 150 * dimensions
+    dist = dists.UniformHypersphere(min_magnitude=min_magnitude)
+    samples = dist.sample(n, dimensions, rng=rng)
 
     # Check the distribution of sample points (only applicable when
     # low < 1)
