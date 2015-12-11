@@ -66,6 +66,8 @@ Release History
   to specify any logging level, instead of the old binary ``debug`` parameter.
   Cache messages are logged at DEBUG instead of INFO level.
   (`#883 <https://github.com/nengo/nengo/pull/883>`_)
+- Added lower bound option to UniformHypersphere distribution.
+  (`#799 <https://github.com/nengo/nengo/pull/799>`_)
 
 **Behavioural changes**
 
