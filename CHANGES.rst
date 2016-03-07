@@ -159,6 +159,10 @@ Release History
   cosine of the angle between two random vectors. It is useful for setting
   intercepts, in particular when using the ``Voja`` learning rule.
   (`#768 <https://github.com/nengo/nengo/pull/768>`_)
+- Improved the default ``LIF`` neuron model to spike at the same rate as the
+  ``LIFRate`` neuron model for constant inputs. The older model has been
+  renamed to ``FastLIF``.
+  (`#975 <https://github.com/nengo/nengo/pull/975>`_)
 
 **Bug fixes**
 

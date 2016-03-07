@@ -233,35 +233,6 @@ class LIF(LIFRate):
         self.min_voltage = min_voltage
 
     def step_math(self, dt, J, spiked, voltage, refractory_time):
-
-        # update voltage using accurate exponential integration scheme
-        dV = -np.expm1(-dt / self.tau_rc) * (J - voltage)
-        voltage += dV
-        voltage[voltage < self.min_voltage] = self.min_voltage
-
-        # update refractory period assuming no spikes for now
-        refractory_time -= dt
-
-        # set voltages of neurons still in their refractory period to 0
-        # and reduce voltage of neurons partway out of their ref. period
-        voltage *= (1 - refractory_time / dt).clip(0, 1)
-
-        # determine which neurons spike (if v > 1 set spiked = 1/dt, else 0)
-        spiked[:] = (voltage > 1) / dt
-
-        # linearly approximate time since neuron crossed spike threshold
-        overshoot = (voltage[spiked > 0] - 1) / dV[spiked > 0]
-        spiketime = dt * (1 - overshoot)
-
-        # set spiking neurons' voltages to zero, and ref. time to tau_ref
-        voltage[spiked > 0] = 0
-        refractory_time[spiked > 0] = self.tau_ref + spiketime
-
-
-class PerfectLIF(LIF):
-    """Spiking version of the leaky integrate-and-fire (LIF) neuron model."""
-
-    def step_math(self, dt, J, spiked, voltage, refractory_time):
         # reduce all refractory times by dt
         refractory_time -= dt
 
@@ -277,19 +248,51 @@ class PerfectLIF(LIF):
         voltage -= (J - voltage) * np.expm1(-delta_t / self.tau_rc)
 
         # determine which neurons spiked (set them to 1/dt, else 0)
-        spiked_mask = voltage >= 1
+        spiked_mask = voltage > 1
         spiked[:] = spiked_mask / dt
-        spiked_v = voltage[spiked_mask]
 
         # set v(0) = 1 and solve for t to compute the spike time
         t_spike = dt + self.tau_rc * np.log1p(
-            -(spiked_v - 1) / (J[spiked_mask] - 1))
+            -(voltage[spiked_mask] - 1) / (J[spiked_mask] - 1))
 
         # set spiked voltages to zero, refractory times to tau_ref, and
         # rectify negative voltages to a floor of min_voltage
         voltage[voltage < self.min_voltage] = self.min_voltage
         voltage[spiked_mask] = 0
         refractory_time[spiked_mask] = self.tau_ref + t_spike
+
+
+class FastLIF(LIF):
+    """Faster version of the leaky integrate-and-fire (LIF) neuron model.
+
+    This neuron model is faster than ``LIF`` but does not produce the ideal
+    firing rate for larger ``dt`` due to linearization of the tuning curves.
+    """
+
+    def step_math(self, dt, J, spiked, voltage, refractory_time):
+
+        # update voltage using accurate exponential integration scheme
+        dV = -np.expm1(-dt / self.tau_rc) * (J - voltage)
+        voltage += dV
+        voltage[voltage < self.min_voltage] = self.min_voltage
+
+        # update refractory period assuming no spikes for now
+        refractory_time -= dt
+
+        # set voltages of neurons still in their refractory period to 0
+        # and linearly reduce voltage when partway out of ref. period
+        voltage *= (1 - refractory_time / dt).clip(0, 1)
+
+        # determine which neurons spike (if v > 1 set spiked = 1/dt, else 0)
+        spiked[:] = (voltage > 1) / dt
+
+        # linearly approximate time since neuron crossed spike threshold
+        overshoot = (voltage[spiked > 0] - 1) / dV[spiked > 0]
+        spiketime = dt * (1 - overshoot)
+
+        # set spiking neurons' voltages to zero, and ref. time to tau_ref
+        voltage[spiked > 0] = 0
+        refractory_time[spiked > 0] = self.tau_ref + spiketime
 
 
 class AdaptiveLIFRate(LIFRate):
