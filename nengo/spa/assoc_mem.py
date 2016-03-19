@@ -77,7 +77,6 @@ class AssociativeMemory(Module):
         if output_vocab is None:
             output_vocab = input_vocab
             output_vectors = input_vectors
-            output_keys = input_keys
         else:
             if output_keys is None:
                 output_keys = input_keys
