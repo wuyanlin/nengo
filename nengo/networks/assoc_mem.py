@@ -580,8 +580,9 @@ class AssociativeMemory(nengo.Network):
             #     (if available)
             default_vector_ens_name = '_'.join([output_name,
                                                 self.default_ens_suffix])
-            default_output_vectors = self._default_output_vectors[output_name]
             if hasattr(self, default_vector_ens_name):
+                default_output_vectors = \
+                    self._default_output_vectors[output_name]
                 nengo.Connection(getattr(self, default_vector_ens_name),
                                  cleanup_output_node,
                                  transform=default_output_vectors.T,
