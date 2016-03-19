@@ -257,7 +257,7 @@ class AssociativeMemory(nengo.Network):
         cfg = nengo.Config(nengo.Ensemble)
         cfg[nengo.Ensemble].update({
             'radius': 1,
-            'intercepts': Uniform(0.5, 1.0),
+            'intercepts': Uniform(0.25, 1.0),
             'encoders': Choice([[1]]),
             'eval_points': Uniform(0.75, 1.1),
             'n_eval_points': self.n_eval_points,
@@ -482,7 +482,7 @@ class AssociativeMemory(nengo.Network):
 
     @with_self
     def add_cleanup_output(self, output_name='output', n_neurons=50,
-                           inhibit_scale=10, replace_output=False):
+                           inhibit_scale=3.5, replace_output=False):
         """Adds a cleaned outputs to the associative memory network.
 
         Creates a doubled-inhibited ensemble structure to the desired assoc
@@ -511,7 +511,9 @@ class AssociativeMemory(nengo.Network):
             inhibited cleanup network.
         inhibit_scale: float
             Scaling factor applied to the inhibitory connections between
-            the ensembles.
+            the ensembles. It is recommended that this value be at
+            least 1.0 / minimum(assoc memory activation thresholds), and that
+            the minimum assoc memory activation threshold be at most 0.1.
 
         replace_output: boolean
             Flag to indicate whether or not to replace the output object
@@ -551,7 +553,7 @@ class AssociativeMemory(nengo.Network):
             nengo.Connection(utility, self.bias_ens1.input,
                              transform=-inhibit_scale)
             nengo.Connection(self.bias_ens1.output, self.bias_ens2.input,
-                             transform=-inhibit_scale)
+                             transform=-1.0)
 
             # --- Make the output node and connect it
             output_vectors = self._output_vectors[output_name]

@@ -13,22 +13,23 @@ class AssociativeMemory(Module):
         The vocabulary (or list of vectors) to be produced for each match. If
         not given, the associative memory will act like an auto-associative
         memory (cleanup memory).
+
+    input_keys: list of strings, optional
+        List of keys (ordered) from the input vocabulary to use as the input
+        semantic pointers for the associative memory.
+    output_keys: list of strings, optional
+        List of keys (ordered) from the output vocabulary to use as the output
+        semantic pointers for the associative memory.
+
     default_output_vector: numpy.array, spa.SemanticPointer, optional
         The vector to be produced if the input value matches none of vectors
         in the input vector list.
     threshold: float, optional
         The association activation threshold.
-    input_scale: float, optional
-        Scaling factor to apply on the input vectors.
 
     inhibitable: boolean, optional
         Flag to indicate if the entire associative memory module is
         inhibitable (entire thing can be shut off).
-    inhibit_scale: float, optional
-        Scaling factor on the gating connections (must have inhibitable =
-        True). Setting a larger value will ensure that the cleanup memory
-        output is inhibited at a faster rate, however, recovery of the
-        network when inhibition is released will be slower.
 
     wta_output: boolean, optional
         Flag to indicate if output of the associative memory should contain
@@ -40,19 +41,12 @@ class AssociativeMemory(Module):
     wta_synapse: float, optional
         Synapse to use for the winner-take-all (wta) inhibitory connections.
 
-    output_utilities: boolean, optional
-        Flag to indicate if the direct utilities (in addition to the vectors)
-        are output as well.
-    output_thresholded_utilities: boolean, optional
-        Flag to indicate if the direct thresholded utilities (in addition to
-        the vectors) are output as well.
-
-    neuron_type: nengo.Neurons, optional
-        Neuron type to use in the associative memory. Defaults to
-    n_neurons_per_ensemble: int, optional
-        Number of neurons per ensemble in the associative memory. There is
-        one ensemble created per vector being compared.
-
+    cleanup_output: boolean, optional
+        Create the associative memory with cleaned outputs as well as the
+        standard outputs.
+    replace_output_with_cleaned_output: boolean, optional
+        Set to true to use the cleaned outputs as the default output of the
+        associative memory module.
     """
 
     def __init__(self, input_vocab, output_vocab=None,  # noqa: C901
@@ -60,8 +54,9 @@ class AssociativeMemory(Module):
                  default_output_key=None, threshold=0.3,
                  inhibitable=False, wta_output=False,
                  wta_inhibit_scale=3.0, wta_synapse=0.005,
-                 threshold_output=False, label=None, seed=None,
-                 add_to_container=None):
+                 cleanup_output=False,
+                 replace_output_with_cleaned_output=False,
+                 label=None, seed=None, add_to_container=None):
         super(AssociativeMemory, self).__init__(label, seed, add_to_container)
 
         if input_keys is None:
@@ -100,18 +95,22 @@ class AssociativeMemory(Module):
             if wta_output:
                 self.am.add_wta_network(wta_inhibit_scale, wta_synapse)
 
-            if threshold_output:
-                self.am.add_threshold_to_outputs()
+            if cleanup_output:
+                self.am.add_cleanup_output(
+                    replace_output=replace_output_with_cleaned_output)
 
             self.input = self.am.input
             self.output = self.am.output
 
+            if cleanup_output and not replace_output_with_cleaned_output:
+                self.cleaned_output = self.am.cleaned_output
+
             if inhibitable:
                 self.inhibit = self.am.inhibit
 
-            self.utilities = self.am.utilities
-            if threshold_output:
-                self.thresholded_utilities = self.am.thresholded_utilities
+            self.utilities = self.am.output_utilities
+            if cleanup_output:
+                self.cleaned_utilities = self.am.cleaned_output_utilities
 
         self.inputs = dict(default=(self.input, input_vocab))
         self.outputs = dict(default=(self.output, output_vocab))

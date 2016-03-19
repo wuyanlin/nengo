@@ -27,7 +27,7 @@ def test_am_spa_interaction(Simulator, seed, rng):
                                  threshold=0.5,
                                  inhibitable=True,
                                  wta_output=True,
-                                 threshold_output=True)
+                                 cleanup_output=True)
 
         cortical_actions = nengo.spa.Actions('am = buf')
         m.c_act = nengo.spa.Cortical(cortical_actions)
