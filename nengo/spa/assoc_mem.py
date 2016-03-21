@@ -94,8 +94,7 @@ class AssociativeMemory(Module):
                                output_vectors=output_vectors,
                                threshold=threshold,
                                inhibitable=inhibitable,
-                               label=label, seed=seed,
-                               add_to_container=add_to_container)
+                               label=label, **module_kwargs)
 
             if default_output_vector is not None:
                 self.am.add_default_output_vector(default_output_vector)
