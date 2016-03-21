@@ -22,7 +22,7 @@ class AssociativeMemory(nengo.Network):
         not given, the associative memory will act like an auto-associative
         memory (cleanup memory).
 
-    n_neurons: int
+    n_neurons: int, optional
         The number of neurons for each of the ensemble (where each ensemble
         represents each item in the input_vectors list)
 
@@ -36,6 +36,14 @@ class AssociativeMemory(nengo.Network):
         Flag to indicate if the entire associative memory module is
         inhibitable (entire thing can be shut off). The input gain into
         the inhibitory connection is 1.5.
+
+    label : str, optional
+        A name to assign this AssociativeMemory. Used for visualization and
+        debugging. Also used as a label prefix for each of the internal
+        ensembles in the AssociativeMemory network.
+
+    Additional network parameters are passed to the Network constructor through
+    **network_kwargs
     """
 
     exp_scale = 0.15  # Scaling factor for exponential distribution
@@ -47,9 +55,8 @@ class AssociativeMemory(nengo.Network):
 
     def __init__(self, input_vectors, output_vectors=None,  # noqa: C901
                  n_neurons=50, threshold=0.3, input_scales=1.0,
-                 inhibitable=False,
-                 label=None, seed=None, add_to_container=None):
-        super(AssociativeMemory, self).__init__(label, seed, add_to_container)
+                 inhibitable=False, label=None, **network_kwargs):
+        super(AssociativeMemory, self).__init__(label=label, **network_kwargs)
 
         # --- Put arguments in canonical form
         if output_vectors is None:
@@ -143,16 +150,16 @@ class AssociativeMemory(nengo.Network):
 
         Parameters
         ----------
-        x_shift: float
+        x_shift: float, optional
             Amount to shift the linear map on the 'x'-axis.
             E.g. If the value of x_shift = 0.3, then the output of the
                  mapping function would be 0 at x == 0.3.
-        x_scale: float
+        x_scale: float, optional
             Scaling factor to be applied to the 'x' input. Affects the slope
             of the linear mapping function.
         """
         return lambda x, x_shift=x_shift, x_scale=x_scale: \
-            (x_scale * x) - x_scale * x_shift
+            (x_scale * (x - x_scale))
 
     def threshold_shifted_linear_funcs(self, x_shift=0.0, x_scale=1.0):
         """Returns a list of threshold-shifted linear mapping function.
@@ -165,11 +172,11 @@ class AssociativeMemory(nengo.Network):
 
         Parameters
         ----------
-        x_shift: float
+        x_shift: float, optional
             Amount to shift the linear map on the 'x'-axis.
             E.g. If the value of x_shift = 0.3, then the output of the linear
                  mapping function would be 0 at x == 0.3.
-        x_scale: float
+        x_scale: float, optional
             Scaling factor to be applied to the 'x' input. Affects the slope
             of the linear mapping function.
         """
@@ -186,16 +193,16 @@ class AssociativeMemory(nengo.Network):
 
         Parameters
         ----------
-        x_shift: float
+        x_shift: float, optional
             Amount to shift the linear map on the 'x'-axis.
             E.g. If the value of x_shift = 0.3, then the output of the
                  mapping function would be 0 at x == 0.3.
-        x_scale: float
+        x_scale: float, optional
             Scaling factor to be applied to the 'x' input. Affects the
             sharpness of the filtered step edge. Larger values produce a
             sharper edge. Set to a negative value to flip the mapping
             function about the 'y' axis at x == x_shift.
-        step_val: float
+        step_val: float, optional
             Maximal value of the filtered step function.
         """
         return (lambda x, x_shift=x_shift, x_scale=x_scale, step_val=step_val:
@@ -212,15 +219,15 @@ class AssociativeMemory(nengo.Network):
 
         Parameters
         ----------
-        x_shift: float
+        x_shift: float, optional
             Amount to shift the linear map on the 'x'-axis.
             E.g. If the value of x_shift = 0.3, then the output of the
                  mapping function would be 0 at x == 0.3.
-        x_scale: float
+        x_scale: float, optional
             Scaling factor to be applied to the 'x' input. Set to a negative
             value to flip the mapping function about the 'y' axis at
             x == x_shift.
-        step_val: float
+        step_val: float, optional
             Maximal value of the filtered step function.
         """
         return (lambda x, x_shift=x_shift, x_scale=x_scale, step_val=step_val:
@@ -245,9 +252,9 @@ class AssociativeMemory(nengo.Network):
         cfg = nengo.Config(nengo.Ensemble)
         cfg[nengo.Ensemble].update({
             'radius': 1,
-            'intercepts': Exponential(self.exp_scale, 0.0, 1.0),
+            'intercepts': Uniform(0.25, 1.0),
             'encoders': Choice([[1]]),
-            'eval_points': Uniform(0.0, 1.0),
+            'eval_points': Uniform(0.75, 1.1),
             'n_eval_points': self.n_eval_points,
         })
         return cfg
@@ -334,7 +341,7 @@ class AssociativeMemory(nengo.Network):
         output_vectors: array_like
             The list of vectors to be produced for each match.
 
-        utility_map_func: function or list of functions
+        utility_map_func: function or list of functions, optional
             The function used to map the utilities of the input vectors to the
             utility of the output vector. If not provided, will default to
             'self.filtered_step_func'.
@@ -390,20 +397,20 @@ class AssociativeMemory(nengo.Network):
 
         Parameters
         ----------
-        output_vector: array_like, optional
+        output_vector: array_like
             The vector to be produced if the input value matches none of
             the vectors in the input vector list.
-        output_name: string
+        output_name: string, optional
             The name of the input to which the default output vector
             should be applied.
 
-        n_neurons: int
+        n_neurons: int, optional
             Number of neurons to use for the default output vector ensemble.
-        min_activation_value: float
+        min_activation_value: float, optional
             Minimum activation value (i.e. threshold) to use to disable
             the default output vector.
 
-        inhibit_scale: float
+        inhibit_scale: float, optional
             Scaling factor applied to the inhibitory connection used to disable
             the default output vector. It is recommended that this value be at
             least 1.0 / minimum(assoc memory activation thresholds), and that
@@ -436,8 +443,8 @@ class AssociativeMemory(nengo.Network):
             nengo.Connection(utility, default_vector_ens, transform=tr)
 
             # Get the output class attribute and connect to it
-            output = getattr(self, output_name)
-            nengo.Connection(default_vector_ens, output,
+            output_node = getattr(self, output_name)
+            nengo.Connection(default_vector_ens, output_node,
                              transform=np.array(output_vector, ndmin=2).T,
                              synapse=None)
 
@@ -448,13 +455,12 @@ class AssociativeMemory(nengo.Network):
 
             # --- Connect default output vector to cleaned outputs
             #     (if available)
-            cleanup_output_node_name = '_'.join([self.cleanup_output_prefix,
-                                                 output_name])
-            if hasattr(self, cleanup_output_node_name) and \
-                (getattr(self, output_name) !=
-                 getattr(self, cleanup_output_node_name)):
-                nengo.Connection(default_vector_ens,
-                                 getattr(self, cleanup_output_node_name),
+            cleanup_output_node = getattr(self,
+                                          '_'.join([self.cleanup_output_prefix,
+                                                    output_name]),
+                                          None)
+            if cleanup_output_node and (output_node != cleanup_output_node):
+                nengo.Connection(default_vector_ens, cleanup_output_node,
                                  transform=np.array(output_vector, ndmin=2).T,
                                  synapse=None)
 
@@ -464,9 +470,9 @@ class AssociativeMemory(nengo.Network):
 
         Parameters
         ----------
-        inhibit_scale: float
+        inhibit_scale: float, optional
             Mutual inhibition scaling factor.
-        inhibit_synapse: float
+        inhibit_synapse: float, optional
             Mutual inhibition synapse time constant.
         """
         if not self.is_wta:
@@ -502,20 +508,20 @@ class AssociativeMemory(nengo.Network):
 
         Parameters
         ----------
-        output_name: string
+        output_name: string, optional
             The name of the input to which the default output vector
             should be applied.
 
-        n_neurons: int
+        n_neurons: int, optional
             Number of neurons to use for the ensembles used in the double-
             inhibited cleanup network.
-        inhibit_scale: float
+        inhibit_scale: float, optional
             Scaling factor applied to the inhibitory connections between
             the ensembles. It is recommended that this value be at
             least 1.0 / minimum(assoc memory activation thresholds), and that
             the minimum assoc memory activation threshold be at most 0.1.
 
-        replace_output: boolean
+        replace_output: boolean, optional
             Flag to indicate whether or not to replace the output object
             (e.g. am.output) with the cleaned output node.
         """
@@ -578,12 +584,13 @@ class AssociativeMemory(nengo.Network):
 
             # --- Connect default output vector to cleaned outputs
             #     (if available)
-            default_vector_ens_name = '_'.join([output_name,
-                                                self.default_ens_suffix])
-            if hasattr(self, default_vector_ens_name):
+            default_vector_ens = getattr(self,
+                                         '_'.join([output_name,
+                                                   self.default_ens_suffix]),
+                                         None)
+            if default_vector_ens:
                 default_output_vectors = \
                     self._default_output_vectors[output_name]
-                nengo.Connection(getattr(self, default_vector_ens_name),
-                                 cleanup_output_node,
+                nengo.Connection(default_vector_ens, cleanup_output_node,
                                  transform=default_output_vectors.T,
                                  synapse=None)

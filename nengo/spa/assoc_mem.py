@@ -47,6 +47,14 @@ class AssociativeMemory(Module):
     replace_output_with_cleaned_output: boolean, optional
         Set to true to use the cleaned outputs as the default output of the
         associative memory module.
+
+    label : str, optional
+        A name to assign this AssociativeMemory. Used for visualization and
+        debugging. Also used as a label prefix for each of the internal
+        ensembles in the AssociativeMemory network.
+
+    Additional network parameters are passed to the Network constructor through
+    **module_kwargs
     """
 
     def __init__(self, input_vocab, output_vocab=None,  # noqa: C901
@@ -56,8 +64,8 @@ class AssociativeMemory(Module):
                  wta_inhibit_scale=3.0, wta_synapse=0.005,
                  cleanup_output=False,
                  replace_output_with_cleaned_output=True,
-                 label=None, seed=None, add_to_container=None):
-        super(AssociativeMemory, self).__init__(label, seed, add_to_container)
+                 label=None, **module_kwargs):
+        super(AssociativeMemory, self).__init__(label=label, **module_kwargs)
 
         if input_keys is None:
             input_keys = input_vocab.keys
