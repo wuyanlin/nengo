@@ -39,42 +39,57 @@ def test_am_spa_interaction(Simulator, seed, rng):
         pass
 
 
-def test_am_spa_keys_as_expressions(Simulator, seed, rng):
+def test_am_spa_keys_as_expressions(Simulator, plt, seed, rng):
     """Provide semantic pointer expressions as input and output keys."""
     D = 64
 
-    voc1 = Vocabulary(D, rng=rng)
-    voc2 = Vocabulary(D, rng=rng)
+    vocab_in = Vocabulary(D, rng=rng)
+    vocab_out = Vocabulary(D, rng=rng)
 
-    voc1.parse('A')
-    voc2.parse('C+D')
+    vocab_in.parse('A+B')
+    vocab_out.parse('C+D')
 
-    in_keys = ['0.9*A']
-    out_keys = ['-C+0.5*D']
+    in_keys = ['A', 'A*B']
+    out_keys = ['C*D', 'C+D']
 
     with nengo.spa.SPA(seed=seed) as model:
-
-        model.am = AssociativeMemory(input_vocab=voc1,
-                                     output_vocab=voc2,
+        model.am = AssociativeMemory(input_vocab=vocab_in,
+                                     output_vocab=vocab_out,
                                      input_keys=in_keys,
-                                     output_keys=out_keys,
-                                     threshold=0.0)
+                                     output_keys=out_keys)
 
-        model.inp = Input(am='A')
-        prob = nengo.Probe(model.am.output, synapse=0.03)
+        model.inp = Input(am=lambda t: 'A' if t < 0.1 else 'A*B')
+
+        in_p = nengo.Probe(model.am.input)
+        out_p = nengo.Probe(model.am.output, synapse=0.03)
 
     with nengo.Simulator(model) as sim:
-        sim.run(0.5)
-        vec_sim = sim.data[prob]
+        sim.run(0.2)
 
-        final_vec = vec_sim[150:].mean(axis=0)
-        sim = similarity(final_vec, voc2, normalize=True)[0]
+    # Specify t ranges
+    t = sim.trange()
+    t_item1 = (t > 0.075) & (t < 0.1)
+    t_item2 = (t > 0.175) & (t < 0.2)
 
-        err_margin = 0.2
+    # Modify vocabularies (for plotting purposes)
+    vocab_in.add(in_keys[1], vocab_in.parse(in_keys[1]).v)
+    vocab_out.add(out_keys[0], vocab_out.parse(out_keys[0]).v)
 
-        # Presenting A, expected at output: -C, 0.5*D
+    plt.subplot(2, 1, 1)
+    plt.plot(t, similarity(sim.data[in_p], vocab_in))
+    plt.ylabel("Input: " + ', '.join(in_keys))
+    plt.legend(vocab_in.keys, loc='best')
+    plt.ylim(top=1.1)
+    plt.subplot(2, 1, 2)
+    plt.plot(t, similarity(sim.data[out_p], vocab_out))
+    plt.plot(t[t_item1], np.ones(t.shape)[t_item1] * 0.9, c='g', lw=2)
+    plt.plot(t[t_item2], np.ones(t.shape)[t_item2] * 0.9, c='r', lw=2)
+    plt.ylabel("Output: " + ', '.join(out_keys))
+    plt.legend(vocab_out.keys, loc='best')
 
-        # Test for approximately equal values: allowed `err_margin` deviation
-        # from the desired value
-        np.testing.assert_allclose(sim[0], -1, atol=err_margin)
-        np.testing.assert_allclose(sim[1], 0.5, atol=err_margin)
+    assert np.mean(similarity(sim.data[out_p][t_item1],
+                              vocab_out.parse(out_keys[0]).v,
+                              normalize=True)) > 0.9
+    assert np.mean(similarity(sim.data[out_p][t_item2],
+                              vocab_out.parse(out_keys[1]).v,
+                              normalize=True)) > 0.9
