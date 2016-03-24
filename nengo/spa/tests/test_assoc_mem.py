@@ -1,6 +1,7 @@
 import nengo
 import numpy as np
 from nengo.spa import Vocabulary, Input
+from nengo.spa.utils import similarity
 from nengo.spa.assoc_mem import AssociativeMemory
 
 
@@ -45,48 +46,35 @@ def test_am_spa_keys_as_expressions(Simulator, seed, rng):
     voc1 = Vocabulary(D, rng=rng)
     voc2 = Vocabulary(D, rng=rng)
 
-    voc1.parse('A+B')
-    voc2.parse('C+D+E')
+    voc1.parse('A')
+    voc2.parse('C+D')
 
-    in_keys = ['A', '0.5*B']
-    out_keys = ['-C+D', '0.3*E']
+    in_keys = ['0.9*A']
+    out_keys = ['-C+0.5*D']
 
     with nengo.spa.SPA(seed=seed) as model:
+
         model.am = AssociativeMemory(input_vocab=voc1,
                                      output_vocab=voc2,
                                      input_keys=in_keys,
                                      output_keys=out_keys,
                                      threshold=0.0)
 
-        model.inp = Input(am=lambda t: 'A' if t < .5 else 'B')
+        model.inp = Input(am='A')
         prob = nengo.Probe(model.am.output, synapse=0.03)
 
-    with Simulator(model) as sim:
-        sim.run(1.0)
+    with nengo.Simulator(model) as sim:
+        sim.run(0.5)
         vec_sim = sim.data[prob]
 
-        final_vecA = vec_sim[100:490].mean(axis=0)
-        simA = np.dot(voc2.vectors, final_vecA)
+        final_vec = vec_sim[150:].mean(axis=0)
+        sim = similarity(final_vec, voc2, normalize=True)[0]
 
-        final_vecB = vec_sim[600:].mean(axis=0)
-        simB = np.dot(voc2.vectors, final_vecB)
+        err_margin = 0.2
 
-        err_margin = 0.4
-        # Case 1. presenting A
-        # Expected at output: -C, D
+        # Presenting A, expected at output: -C, 0.5*D
 
-        # Test for approximately equal values
-        np.testing.assert_allclose(simA[0], -simA[1], rtol=0.1)
-        # Test for mapped values "close" to 1
-        np.testing.assert_allclose(simA[0], -1, rtol=err_margin)
-        # Test E is not affected by A (should be "close" to 0)
-        np.testing.assert_allclose(np.abs(simA[2]), 0, atol=err_margin)
-
-        # Case 2. presenting B
-        # Expected output: 0.3*E
-
-        # Test E is close to 0.3
-        np.testing.assert_allclose(simB[2], 0.3, rtol=err_margin)
-        # Test C and D are close to 0
-        np.testing.assert_allclose(np.abs(simB[0]), 0, atol=err_margin)
-        np.testing.assert_allclose(np.abs(simB[1]), 0, atol=err_margin)
+        # Test for approximately equal values: allowed `err_margin` deviation
+        # from the desired value
+        np.testing.assert_allclose(sim[0], -1, atol=err_margin)
+        np.testing.assert_allclose(sim[1], 0.5, atol=err_margin)
