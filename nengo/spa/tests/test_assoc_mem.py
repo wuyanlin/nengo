@@ -82,8 +82,9 @@ def test_am_spa_keys_as_expressions(Simulator, plt, seed, rng):
     plt.ylim(top=1.1)
     plt.subplot(2, 1, 2)
     plt.plot(t, similarity(sim.data[out_p], vocab_out))
-    plt.plot(t[t_item1], np.ones(t.shape)[t_item1] * 0.9, c='g', lw=2)
-    plt.plot(t[t_item2], np.ones(t.shape)[t_item2] * 0.9, c='r', lw=2)
+    plt.plot(t[t_item1], np.ones(t.shape)[t_item1] * 0.9, c='r', lw=2)
+    plt.plot(t[t_item2], np.ones(t.shape)[t_item2] * 0.91, c='g', lw=2)
+    plt.plot(t[t_item2], np.ones(t.shape)[t_item2] * 0.89, c='b', lw=2)
     plt.ylabel("Output: " + ', '.join(out_keys))
     plt.legend(vocab_out.keys, loc='best')
 
