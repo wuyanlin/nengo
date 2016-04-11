@@ -357,14 +357,13 @@ class NdarrayParam(Parameter):
         return array_hash(self.__get__(instance, None))
 
 
-FunctionInfo = collections.namedtuple('FunctionInfo', ['function', 'size'])
-
-
 class FunctionParam(Parameter):
+    Info = collections.namedtuple('FunctionInfo', ['function', 'size'])
+
     def __set__(self, instance, function):
         size = (self.determine_size(instance, function)
                 if callable(function) else None)
-        function_info = FunctionInfo(function=function, size=size)
+        function_info = self.Info(function=function, size=size)
         super(FunctionParam, self).__set__(instance, function_info)
 
     def function_args(self, instance, function):
