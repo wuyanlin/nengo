@@ -51,7 +51,7 @@ class LearningRuleType(FrozenObject):
                 if self.learning_rate != 1e-6 else [])
 
     def __repr__(self):
-        return '%s(%s)' % (self.__class__.__name__, ", ".join(self._argreprs))
+        return '%s(%s)' % (type(self).__name__, ", ".join(self._argreprs))
 
 
 class PES(LearningRuleType):

@@ -123,7 +123,7 @@ class Network(object):
                 break
         else:
             raise NetworkContextError("Objects of type %r cannot be added to "
-                                      "networks." % obj.__class__.__name__)
+                                      "networks." % type(obj).__name__)
 
     def _all_objects(self, object_type):
         """Returns a list of all objects of the specified type"""
@@ -204,12 +204,12 @@ class Network(object):
 
     def __str__(self):
         return "<%s %s>" % (
-            self.__class__.__name__,
+            type(self).__name__,
             '"%s"' % self.label if self.label is not None else
             "(unlabeled) at 0x%x" % id(self))
 
     def __repr__(self):
         return "<%s %s %s>" % (
-            self.__class__.__name__,
+            type(self).__name__,
             '"%s"' % self.label if self.label is not None else "(unlabeled)",
             "at 0x%x" % id(self))

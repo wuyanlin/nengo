@@ -71,11 +71,11 @@ class Operator(object):
 
     def __str__(self):
         strs = (s for s in (self._descstr(), self._tagstr()) if s)
-        return "%s{%s}" % (self.__class__.__name__, ' '.join(strs))
+        return "%s{%s}" % (type(self).__name__, ' '.join(strs))
 
     def __repr__(self):
         return "<%s%s at 0x%x>" % (
-            self.__class__.__name__, self._tagstr(), id(self))
+            type(self).__name__, self._tagstr(), id(self))
 
     def _descstr(self):
         return ''

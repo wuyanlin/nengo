@@ -324,7 +324,7 @@ class SqrtBeta(Distribution):
         self.m = m
 
     def __repr__(self):
-        return "%s(n=%r, m=%r)" % (self.__class__.__name__, self.n, self.m)
+        return "%s(n=%r, m=%r)" % (type(self).__name__, self.n, self.m)
 
     def sample(self, num, d=None, rng=np.random):
         shape = self._sample_shape(num, d)
@@ -411,7 +411,7 @@ class SubvectorLength(SqrtBeta):
 
     def __repr__(self):
         return "%s(%r, subdimensions=%r)" % (
-            self.__class__.__name__, self.n + self.m, self.m)
+            type(self).__name__, self.n + self.m, self.m)
 
 
 class CosineSimilarity(SubvectorLength):

@@ -21,7 +21,7 @@ class NeuronType(FrozenObject):
         return []
 
     def __repr__(self):
-        return "%s(%s)" % (self.__class__.__name__, ", ".join(self._argreprs))
+        return "%s(%s)" % (type(self).__name__, ", ".join(self._argreprs))
 
     def rates(self, x, gain, bias):
         """Compute firing rates (in Hz) for given vector input, ``x``.

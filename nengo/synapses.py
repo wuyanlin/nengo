@@ -107,7 +107,7 @@ class LinearFilter(Synapse):
 
     def __repr__(self):
         return "%s(%s, %s, analog=%r)" % (
-            self.__class__.__name__, self.num, self.den, self.analog)
+            type(self).__name__, self.num, self.den, self.analog)
 
     def evaluate(self, frequencies):
         """Evaluate transfer function at given frequencies.
@@ -261,7 +261,7 @@ class Lowpass(LinearFilter):
         self.tau = tau
 
     def __repr__(self):
-        return "%s(%r)" % (self.__class__.__name__, self.tau)
+        return "%s(%r)" % (type(self).__name__, self.tau)
 
     def make_step(self, shape_in, shape_out, dt, rng, y0=None,
                   dtype=np.float64, **kwargs):
@@ -299,7 +299,7 @@ class Alpha(LinearFilter):
         self.tau = tau
 
     def __repr__(self):
-        return "%s(%r)" % (self.__class__.__name__, self.tau)
+        return "%s(%r)" % (type(self).__name__, self.tau)
 
     def make_step(self, shape_in, shape_out, dt, rng, y0=None,
                   dtype=np.float64, **kwargs):
@@ -325,7 +325,7 @@ class Triangle(Synapse):
         self.t = t
 
     def __repr__(self):
-        return "%s(%r)" % (self.__class__.__name__, self.t)
+        return "%s(%r)" % (type(self).__name__, self.t)
 
     def make_step(self, shape_in, shape_out, dt, rng, y0=None,
                   dtype=np.float64):

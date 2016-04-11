@@ -50,7 +50,7 @@ def test_boundfunction():
         global state
         state = 'run'
         assert instance is not None
-        assert instance.__class__.__name__ == 'Test'
+        assert type(instance).__name__ == 'Test'
         return wrapped(*args, **kwargs)
 
     class Test(object):

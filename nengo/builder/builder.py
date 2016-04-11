@@ -125,6 +125,6 @@ class Builder(object):
                 break
         else:
             raise BuildError(
-                "Cannot build object of type %r" % obj.__class__.__name__)
+                "Cannot build object of type %r" % type(obj).__name__)
 
         return cls.builders[obj_cls](model, obj, *args, **kwargs)

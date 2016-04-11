@@ -312,7 +312,7 @@ class Solver(with_metaclass(DocstringInheritor)):
 
     def __str__(self):
         return "%s(%s)" % (
-            self.__class__.__name__,
+            type(self).__name__,
             ', '.join("%s=%s" % (k, v) for k, v in iteritems(self.__dict__)))
 
 

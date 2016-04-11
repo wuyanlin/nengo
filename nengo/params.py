@@ -83,7 +83,7 @@ class Parameter(object):
 
     def __repr__(self):
         return "%s(default=%s, optional=%s, readonly=%s)" % (
-            self.__class__.__name__,
+            type(self).__name__,
             self.default,
             self.optional,
             self.readonly)
@@ -307,7 +307,7 @@ class NdarrayParam(Parameter):
             except (ValueError, TypeError):
                 raise ValidationError(
                     "Must be a float NumPy array (got type %r)"
-                    % ndarray.__class__.__name__, attr=self.name, obj=instance)
+                    % type(ndarray).__name__, attr=self.name, obj=instance)
 
         if self.readonly:
             ndarray.setflags(write=False)
@@ -397,7 +397,7 @@ class FrozenObject(object):
                 raise ReadonlyError(attr=p, obj=self, msg=msg)
 
     def __repr__(self):
-        return "%s(%s)" % (self.__class__.__name__, ', '.join(
+        return "%s(%s)" % (type(self).__name__, ', '.join(
             "%s=%r" % (k, getattr(self, k)) for k in sorted(self._paramdict)))
 
     @property

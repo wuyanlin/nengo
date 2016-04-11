@@ -79,7 +79,7 @@ class ClassParams(object):
         for attr in filled_defaults + sorted(self.extra_params):
             params.append("%s: %s" % (attr, getattr(self, attr)))
 
-        return "<%s[%s]{%s}>" % (self.__class__.__name__,
+        return "<%s[%s]{%s}>" % (type(self).__name__,
                                  self._configures.__name__, ", ".join(params))
 
     def get_param(self, key):
@@ -136,7 +136,7 @@ class InstanceParams(object):
             raise ConfigError(
                 "Cannot configure the built-in parameter '%s' on an instance "
                 "of '%s'. Please get the attribute directly from the object."
-                % (key, self._configures.__class__.__name__))
+                % (key, type(self._configures).__name__))
         param = self._clsparams.get_param(key)
         if self in param:
             return param.__get__(self, self.__class__)
@@ -151,7 +151,7 @@ class InstanceParams(object):
             raise ConfigError(
                 "Cannot configure the built-in parameter '%s' on an instance "
                 "of '%s'. Please set the attribute directly on the object."
-                % (key, self._configures.__class__.__name__))
+                % (key, type(self._configures).__name__))
         else:
             self._clsparams.get_param(key).__set__(self, value)
 
@@ -163,7 +163,7 @@ class InstanceParams(object):
             raise ConfigError(
                 "Cannot configure the built-in parameter '%s' on an instance "
                 "of '%s'. Please delete the attribute directly on the object."
-                % (key, self._configures.__class__.__name__))
+                % (key, type(self._configures).__name__))
         else:
             self._clsparams.get_param(key).__delete__(self)
 
@@ -174,7 +174,7 @@ class InstanceParams(object):
         for attr in filled_params:
             params.append("%s: %s" % (attr, getattr(self, attr)))
 
-        return "<%s[%s]{%s}>" % (self.__class__.__name__,
+        return "<%s[%s]{%s}>" % (type(self).__name__,
                                  self._configures, ", ".join(params))
 
     def __str__(self):
@@ -187,12 +187,12 @@ class InstanceParams(object):
     def get_param(self, key):
         raise ConfigError("Cannot get parameters on an instance; use "
                           "'config[%s].get_param' instead."
-                          % self._configures.__class__.__name__)
+                          % type(self._configures).__name__)
 
     def set_param(self, key, value):
         raise ConfigError("Cannot set parameters on an instance; use "
                           "'config[%s].set_param' instead."
-                          % self._configures.__class__.__name__)
+                          % type(self._configures).__name__)
 
 
 class Config(object):
@@ -333,11 +333,11 @@ class Config(object):
         # If we don't configure the class, KeyError
         raise ConfigError(
             "Type '%(name)s' is not set up for configuration. Call "
-            "configures('%(name)s') first." % {'name': key.__class__.__name__})
+            "configures('%(name)s') first." % {'name': type(key).__name__})
 
     def __repr__(self):
         classes = [key.__name__ for key in self.params if inspect.isclass(key)]
-        return "<%s(%s)>" % (self.__class__.__name__, ', '.join(classes))
+        return "<%s(%s)>" % (type(self).__name__, ', '.join(classes))
 
     def __str__(self):
         return "\n".join(str(v) for v in itervalues(self.params))
