@@ -120,7 +120,7 @@ class Builder(object):
             warnings.warn("Object %s has already been built." % obj)
             return None
 
-        for obj_cls in obj.__class__.__mro__:
+        for obj_cls in type(obj).__mro__:
             if obj_cls in cls.builders:
                 break
         else:

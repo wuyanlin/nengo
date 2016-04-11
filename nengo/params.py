@@ -389,7 +389,7 @@ class FunctionParam(Parameter):
 class FrozenObject(object):
     def __init__(self):
         self._paramdict = {
-            k: v for k, v in inspect.getmembers(self.__class__)
+            k: v for k, v in inspect.getmembers(type(self))
             if isinstance(v, Parameter)}
         for p in self._params:
             if not p.readonly:
@@ -407,11 +407,11 @@ class FrozenObject(object):
     def __eq__(self, other):
         if self is other:  # quick check for speed
             return True
-        return self.__class__ == other.__class__ and all(
+        return type(self) == other.__class__ and all(
             p.equal(self, other) for p in self._params)
 
     def __hash__(self):
-        return hash((self.__class__, tuple(
+        return hash((type(self), tuple(
             p.hashvalue(self) for p in self._params)))
 
     def __getstate__(self):

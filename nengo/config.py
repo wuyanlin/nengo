@@ -139,7 +139,7 @@ class InstanceParams(object):
                 % (key, type(self._configures).__name__))
         param = self._clsparams.get_param(key)
         if self in param:
-            return param.__get__(self, self.__class__)
+            return param.__get__(self, type(self))
         return getattr(self._clsparams, key)
 
     def __setattr__(self, key, value):
@@ -323,7 +323,7 @@ class Config(object):
                 "Call 'configures(%(name)s)' first." % {'name': key.__name__})
 
         # For new instances, if we configure a class in the mro we're good
-        for cls in key.__class__.__mro__:
+        for cls in type(key).__mro__:
             if cls in self.params:
                 clsparams = self.params[cls]
                 instparams = InstanceParams(key, clsparams)

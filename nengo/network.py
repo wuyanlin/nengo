@@ -117,7 +117,7 @@ class Network(object):
         if not isinstance(network, Network):
             raise NetworkContextError(
                 "Current context (%s) is not a network" % network)
-        for cls in obj.__class__.__mro__:
+        for cls in type(obj).__mro__:
             if cls in network.objects:
                 network.objects[cls].append(obj)
                 break
