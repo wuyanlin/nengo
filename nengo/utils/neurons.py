@@ -139,7 +139,7 @@ def rates_kernel(t, spikes, kind='gauss', tau=0.04):
 
 
 def settled_firingrate(step_math, J, states,
-                       dt=0.001, settle_time=0.1, sim_time=1.0):
+                       dt=0.001, settle_time=0.1, sim_time=1.0, out=None):
     """Compute firing rates (in Hz) for given vector input, ``x``.
 
     Unlike the default naive implementation, this approach takes into
@@ -157,16 +157,19 @@ def settled_firingrate(step_math, J, states,
     *states : list of ndarrays
         additional state needed by the step function
     """
-    out = np.zeros_like(J)
-    total = np.zeros_like(J)
+    out = np.zeros_like(J) if out is None else out
+    step_out = np.zeros_like(J)  # temporary buffer for step_math output
 
     # Simulate for the settle time
     steps = int(settle_time / dt)
     for _ in range(steps):
-        step_math(dt, J, out, *states)
+        step_math(dt, J, step_out, *states)
+
     # Simulate for sim time, and keep track
     steps = int(sim_time / dt)
     for _ in range(steps):
-        step_math(dt, J, out, *states)
-        total += out
-    return total / float(steps)
+        step_math(dt, J, step_out, *states)
+        out += step_out
+
+    out /= steps
+    return out

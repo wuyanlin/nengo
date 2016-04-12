@@ -1,4 +1,5 @@
 import collections
+import logging
 
 import numpy as np
 
@@ -16,6 +17,7 @@ from nengo.neurons import Direct
 from nengo.node import Node
 from nengo.utils.compat import is_iterable, itervalues
 
+logger = logging.getLogger(__name__)
 
 BuiltConnection_ = collections.namedtuple(
     'BuiltConnection', ['eval_points', 'solver_info', 'weights', 'transform'])
@@ -100,10 +102,18 @@ def build_decoders(model, conn, rng, transform):
 
 def solve_for_decoders(
         solver, neuron_type, gain, bias, x, targets, rng, E=None):
-    activities = neuron_type.rates(x, gain, bias)
+    # compute activities in blocks to save memory
+    block_size = 100000
+    block_len = max(int(float(block_size) / np.prod(x.shape[1:])), 1)
+    activities = np.zeros_like(x)
+    for i in range(int(np.ceil(float(x.shape[0]) / block_len))):
+        i0, i1 = i*block_len, min((i+1)*block_len, x.shape[0])
+        neuron_type.rates(x[i0:i1], gain, bias, out=activities[i0:i1])
+
     if np.count_nonzero(activities) == 0:
         raise BuildError()
 
+    logger.debug("Solving system: %s" % (activities.shape,))
     if solver.weights:
         decoders, solver_info = solver(activities, targets, rng=rng, E=E)
     else:
