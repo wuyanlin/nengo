@@ -137,6 +137,18 @@ def expm(A, n_factors=None, normalize=False):
     return np.linalg.matrix_power(Y, a) if normalize else Y
 
 
+def expand_dims(a, axis):
+    """Like numpy.expand_dims, but with support for multiple axes."""
+    a = np.asarray(a)
+    shape = list(a.shape)
+    axes = axis if is_iterable(axis) else (axis,)
+    n = len(shape) + len(axes)
+    axes = sorted([i + n if i < 0 else i for i in axes])
+    for i in axes:
+        shape.insert(i, 1)
+    return a.reshape(shape)
+
+
 def norm(x, axis=None, keepdims=False):
     """Euclidean norm
 
@@ -151,7 +163,7 @@ def norm(x, axis=None, keepdims=False):
         newer versions of Numpy (>= 1.7).
     """
     y = np.sqrt(np.sum(x**2, axis=axis))
-    return np.expand_dims(y, axis=axis) if keepdims else y
+    return expand_dims(y, axis=axis) if keepdims else y
 
 
 def meshgrid_nd(*args):
@@ -175,7 +187,7 @@ def rms(x, axis=None, keepdims=False):
         newer versions of Numpy (>= 1.7).
     """
     y = np.sqrt(np.mean(x**2, axis=axis))
-    return np.expand_dims(y, axis=axis) if keepdims else y
+    return expand_dims(y, axis=axis) if keepdims else y
 
 
 def rmse(x, y, axis=None, keepdims=False):
