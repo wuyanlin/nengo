@@ -186,7 +186,7 @@ class LIFRate(NeuronType):
 
     def rates(self, x, gain, bias, out=None):
         J = gain * x + bias
-        out = np.zeros_like(x) if out is None else out
+        out = np.zeros_like(J) if out is None else out
         # Use LIFRate's step_math explicitly to ensure rate approximation
         LIFRate.step_math(self, dt=1, J=J, output=out)
         return out
