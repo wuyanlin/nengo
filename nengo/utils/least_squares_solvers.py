@@ -94,7 +94,7 @@ class ConjgradScipy(LeastSquaresSolver):
                 G, B[:, i], tol=self.tol, callback=callback)
 
         info = {'rmses': rmses(A, X, Y), 'iterations': itns, 'info': infos}
-        return X if matrix_in else X.flatten(), info
+        return X if matrix_in else X.ravel(), info
 
 
 class LSMRScipy(LeastSquaresSolver):
@@ -115,7 +115,7 @@ class LSMRScipy(LeastSquaresSolver):
                 A, Y[:, i], damp=damp, atol=self.tol, btol=self.tol)
 
         info = {'rmses': rmses(A, X, Y), 'iterations': itns}
-        return X if matrix_in else X.flatten(), info
+        return X if matrix_in else X.ravel(), info
 
 
 class Conjgrad(LeastSquaresSolver):
@@ -142,7 +142,7 @@ class Conjgrad(LeastSquaresSolver):
                 G, B[:, i], X[:, i], maxiters=self.maxiters, rtol=rtol)
 
         info = {'rmses': rmses(A, X, Y), 'iterations': iters}
-        return X if matrix_in else X.flatten(), info
+        return X if matrix_in else X.ravel(), info
 
     @staticmethod
     def _conjgrad_iters(calcAx, b, x, maxiters=None, rtol=1e-6):
@@ -219,7 +219,7 @@ class BlockConjgrad(LeastSquaresSolver):
             Rsold = Rsnew
 
         info = {'rmses': rmses(A, X, Y), 'iterations': i + 1}
-        return X if matrix_in else X.flatten(), info
+        return X if matrix_in else X.ravel(), info
 
 
 class SVD(LeastSquaresSolver):
@@ -231,7 +231,7 @@ class SVD(LeastSquaresSolver):
         si = s / (s**2 + m * sigma**2)
         X = np.dot(V.T, si[:, None] * np.dot(U.T, Y))
         info = {'rmses': npext.rms(Y - np.dot(A, X), axis=0)}
-        return X if matrix_in else X.flatten(), info
+        return X if matrix_in else X.ravel(), info
 
 
 class RandomizedSVD(LeastSquaresSolver):
@@ -272,7 +272,7 @@ class RandomizedSVD(LeastSquaresSolver):
         si = s / (s**2 + m * sigma**2)
         X = np.dot(V.T, si[:, None] * np.dot(U.T, Y))
         info = {'rmses': npext.rms(Y - np.dot(A, X), axis=0)}
-        return X if matrix_in else X.flatten(), info
+        return X if matrix_in else X.ravel(), info
 
 
 class LeastSquaresSolverParam(Parameter):
