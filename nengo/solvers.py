@@ -345,7 +345,7 @@ class LstsqDrop(Solver):
     solver2 = SolverParam('solver2')
 
     def __init__(self, weights=False, drop=0.25,
-                 solver1=LstsqL2nz(reg=0.1), solver2=LstsqL2nz(reg=0.01)):
+                 solver1=LstsqL2(reg=0.1), solver2=LstsqL2(reg=0.01)):
         """
         Parameters
         ----------
@@ -353,9 +353,9 @@ class LstsqDrop(Solver):
             If False, solve for decoders. If True, solve for weights.
         drop : float, optional (Default: 0.25)
             Fraction of decoders or weights to set to zero.
-        solver1 : Solver, optional (Default: ``LstsqL2nz(reg=0.1)``)
+        solver1 : Solver, optional (Default: ``LstsqL2(reg=0.1)``)
             Solver for finding the initial decoders.
-        solver2 : Solver, optional (Default: ``LstsqL2nz(reg=0.01)``)
+        solver2 : Solver, optional (Default: ``LstsqL2(reg=0.01)``)
             Used for re-solving for the decoders after dropout.
 
         Attributes
