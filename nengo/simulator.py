@@ -8,6 +8,7 @@ import numpy as np
 
 import nengo.utils.numpy as npext
 from nengo.builder import Model
+from nengo.builder.optimizer import OpMergeOptimizer
 from nengo.builder.signal import SignalDict
 from nengo.cache import get_default_decoder_cache
 from nengo.exceptions import ReadonlyError, SimulatorClosed
@@ -133,15 +134,16 @@ class Simulator(object):
 
         self.model.decoder_cache.shrink()
 
+        # Order the steps (they are made in `Simulator.reset`)
+        self.dg = operator_depencency_graph(self.model.operators)
+        OpMergeOptimizer(self.model, self.dg).optimize()
+        self._step_order = [op for op in toposort(self.dg)
+                            if hasattr(op, 'make_step')]
+
         # -- map from Signal.base -> ndarray
         self.signals = SignalDict()
         for op in self.model.operators:
             op.init_signals(self.signals)
-
-        # Order the steps (they are made in `Simulator.reset`)
-        self.dg = operator_depencency_graph(self.model.operators)
-        self._step_order = [op for op in toposort(self.dg)
-                            if hasattr(op, 'make_step')]
 
         # Add built states to the probe dictionary
         self._probe_outputs = self.model.params
