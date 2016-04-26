@@ -179,6 +179,11 @@ class Operator(object):
         """
         raise NotImplementedError("subclasses must implement this method.")
 
+    @classmethod
+    def supports_merge(cls):
+        """Returns whether this operator type supports merges at all."""
+        return False
+
     def can_merge(self, other):
         """Checks if this signal can be merged with another signal.
 
@@ -259,6 +264,10 @@ class TimeUpdate(Operator):
             time[...] = step * dt
 
         return step_timeupdate
+
+    @classmethod
+    def supports_merge(cls):
+        return True
 
     def can_merge(self, other):
         return (self.__class__ is other.__class__)
@@ -370,6 +379,10 @@ class Reset(Operator):
             target[...] = value
         return step_reset
 
+    @classmethod
+    def supports_merge(cls):
+        return True
+
     def can_merge(self, other):
         return (
             self.__class__ is other.__class__ and
@@ -435,6 +448,10 @@ class Copy(Operator):
         def step_copy():
             dst[...] = src
         return step_copy
+
+    @classmethod
+    def supports_merge(cls):
+        return True
 
     def can_merge(self, other):
         return self.__class__ is other.__class__
