@@ -6,7 +6,8 @@ import numpy as np
 from nengo.exceptions import (
     ConfigError, ObsoleteError, ReadonlyError, ValidationError)
 from nengo.utils.compat import (
-    is_array, is_integer, is_number, is_string, itervalues)
+    is_array, is_integer, is_number, is_string, itervalues, with_metaclass)
+from nengo.utils.magic import DocstringInheritor
 from nengo.utils.numpy import array_hash, compare
 from nengo.utils.stdlib import WeakKeyIDDictionary, checked_call
 
@@ -416,7 +417,7 @@ class FunctionParam(Parameter):
         super(FunctionParam, self).validate(instance, function)
 
 
-class FrozenObject(object):
+class FrozenObject(with_metaclass(DocstringInheritor)):
     """An object with parameters that cannot change value after instantiation.
 
     Since such objects are read-only ("frozen"), they can be safely used in

@@ -4,7 +4,8 @@ import numpy as np
 
 import nengo.utils.numpy as npext
 from nengo.exceptions import ValidationError
-from nengo.params import Parameter
+from nengo.params import (
+    BoolParam, FrozenObject, IntParam, NumberParam, Parameter)
 
 
 def format_system(A, Y):
@@ -20,7 +21,7 @@ def rmses(A, X, Y):
     return npext.rms(Y - np.dot(A, X), axis=0)
 
 
-class LeastSquaresSolver(object):
+class LeastSquaresSolver(FrozenObject):
     """Linear least squares system solver."""
 
     def __call__(self, A, y, sigma, rng=None):
@@ -30,7 +31,10 @@ class LeastSquaresSolver(object):
 class Cholesky(LeastSquaresSolver):
     """Solve a least-squares system using the Cholesky decomposition."""
 
+    transpose = BoolParam('transpose', optional=True)
+
     def __init__(self, transpose=None):
+        super(Cholesky, self).__init__()
         self.transpose = transpose
 
     def __call__(self, A, y, sigma, rng=None):
@@ -69,7 +73,10 @@ class Cholesky(LeastSquaresSolver):
 class ConjgradScipy(LeastSquaresSolver):
     """Solve a least-squares system using Scipy's conjugate gradient."""
 
+    tol = NumberParam('tol', low=0)
+
     def __init__(self, tol=1e-4):
+        super(ConjgradScipy, self).__init__()
         self.tol = tol
 
     def __call__(self, A, Y, sigma, rng=None):
@@ -100,7 +107,10 @@ class ConjgradScipy(LeastSquaresSolver):
 class LSMRScipy(LeastSquaresSolver):
     """Solve a least-squares system using Scipy's LSMR."""
 
+    tol = NumberParam('tol', low=0)
+
     def __init__(self, tol=1e-4):
+        super(LSMRScipy, self).__init__()
         self.tol = tol
 
     def __call__(self, A, Y, sigma, rng=None):
@@ -121,7 +131,11 @@ class LSMRScipy(LeastSquaresSolver):
 class Conjgrad(LeastSquaresSolver):
     """Solve a least-squares system using conjugate gradient."""
 
+    tol = NumberParam('tol', low=0)
+    maxiters = IntParam('maxiters', low=1, optional=True)
+
     def __init__(self, tol=1e-2, maxiters=None, X0=None):
+        super(Conjgrad, self).__init__()
         self.tol = tol
         self.maxiters = maxiters
         self.X0 = X0
@@ -181,7 +195,10 @@ class Conjgrad(LeastSquaresSolver):
 class BlockConjgrad(LeastSquaresSolver):
     """Solve a multiple-RHS least-squares system using block conj. gradient."""
 
+    tol = NumberParam('tol', low=0)
+
     def __init__(self, tol=1e-2, X0=None):
+        super(BlockConjgrad, self).__init__()
         self.tol = tol
         self.X0 = X0
 
@@ -253,7 +270,11 @@ class RandomizedSVD(LeastSquaresSolver):
     ``sklearn.utils.extmath.randomized_svd`` for details about the parameters.
     """
 
+    n_components = IntParam('n_components', low=1)
+    n_oversamples = IntParam('n_oversamples', low=0)
+
     def __init__(self, n_components=60, n_oversamples=10, **kwargs):
+        super(RandomizedSVD, self).__init__()
         self.n_components = n_components
         self.n_oversamples = n_oversamples
         self.kwargs = kwargs
