@@ -292,6 +292,20 @@ class TupleParam(Parameter):
         super(TupleParam, self).validate(instance, value)
 
 
+class ShapeParam(TupleParam):
+    """A parameter where the value is a tuple of integers."""
+
+    equatable = True
+
+    def __set__(self, instance, value):
+        try:
+            value = tuple(int(v) for v in value)
+        except TypeError:
+            raise ValidationError("Value must be castable to a tuple of ints",
+                                  attr=self.name, obj=instance)
+        Parameter.__set__(self, instance, value)
+
+
 class DictParam(Parameter):
     """A parameter where the value is a dictionary."""
 
