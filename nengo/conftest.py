@@ -260,15 +260,33 @@ def pytest_runtest_setup(item):  # noqa: C901
 
 
 def pytest_collection_modifyitems(session, config, items):
-    compare = config.getvalue('compare') is None
+    compare_not_requested = config.getvalue('compare') is None
+    sim_overridden = TestConfig.Simulator is not nengo.Simulator
+    refsim_overridden = TestConfig.RefSimulator is not nengo.Simulator
+    backend_tests_only = sim_overridden or refsim_overridden
+
     for item in list(items):
         if not hasattr(item, 'obj'):
             continue
-        if (getattr(item.obj, 'compare', None) is None) != compare:
-            items.remove(item)
-        elif (TestConfig.Simulator is not nengo.Simulator and
-                'Simulator' not in item.fixturenames):
-            items.remove(item)
+
+        test_uses_compare = getattr(item.obj, 'compare', None) is not None
+        test_uses_sim = 'Simulator' in item.fixturenames
+        test_uses_refsim = 'RefSimulator' in item.fixturenames
+        tests_frontend = not (test_uses_sim or test_uses_refsim)
+
+        reason = None
+
+        if compare_not_requested and test_uses_compare:
+            reason = "compare tests not requested"
+        elif backend_tests_only and tests_frontend:
+            reason = "frontend tests not run for alternate backends"
+        elif backend_tests_only and test_uses_refsim and not refsim_overridden:
+            reason = "RefSimulator not overridden"
+        elif backend_tests_only and test_uses_sim and not sim_overridden:
+            reason = "Simulator not overridden"
+
+        if reason is not None:
+            item.add_marker(pytest.mark.skip(reason=reason))
 
 
 def pytest_terminal_summary(terminalreporter):
