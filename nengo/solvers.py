@@ -6,7 +6,6 @@ depending on whether the post-population encoders `E` are provided (see below).
 Solvers that are only intended to solve for either decoders or weights can
 remove the `E` parameter or make it manditory as they see fit.
 """
-import collections
 import logging
 import time
 
@@ -15,10 +14,9 @@ import numpy as np
 import nengo.utils.least_squares_solvers as lstsq
 from nengo.exceptions import ValidationError
 from nengo.params import BoolParam, FrozenObject, NumberParam, Parameter
-from nengo.utils.compat import range, with_metaclass, iteritems
+from nengo.utils.compat import range
 from nengo.utils.least_squares_solvers import (
     format_system, rmses, LeastSquaresSolverParam)
-from nengo.utils.magic import DocstringInheritor
 
 logger = logging.getLogger(__name__)
 
