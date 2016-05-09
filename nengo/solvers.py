@@ -14,14 +14,15 @@ import numpy as np
 import nengo.utils.least_squares_solvers as lstsq
 from nengo.exceptions import ValidationError
 from nengo.params import BoolParam, FrozenObject, NumberParam, Parameter
-from nengo.utils.compat import range
+from nengo.utils.compat import range, with_metaclass
 from nengo.utils.least_squares_solvers import (
     format_system, rmses, LeastSquaresSolverParam)
+from nengo.utils.magic import DocstringInheritor
 
 logger = logging.getLogger(__name__)
 
 
-class Solver(FrozenObject):
+class Solver(with_metaclass(DocstringInheritor, FrozenObject)):
     """Decoder or weight solver."""
 
     def __call__(self, A, Y, rng=None, E=None):
