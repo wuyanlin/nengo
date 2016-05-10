@@ -126,9 +126,7 @@ class Simulator(object):
 
         with cache:
             if model is None:
-                dt = float(dt)  # make sure it's a float (for division
-                                # purposes)
-                self.model = Model(dt=dt,
+                self.model = Model(dt=float(dt),
                                    label="%s, dt=%f" % (network, dt),
                                    decoder_cache=cache)
             else:

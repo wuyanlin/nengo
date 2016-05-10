@@ -143,8 +143,8 @@ def test_decoder_cache_shrinking(tmpdir):
     with DecoderCache(cache_dir=cache_dir) as cache:
         cache.wrap_solver(solver_mock)(**get_solver_test_args())
 
-        # Ensure differing time stamps (depending on the file system the timestamp
-        # resolution might be as bad as 1 day).
+        # Ensure differing time stamps (depending on the file system the
+        # timestamp resolution might be as bad as 1 day).
         for path in cache.get_files():
             timestamp = os.stat(path).st_atime
             timestamp -= 60 * 60 * 24 * 2  # 2 days
