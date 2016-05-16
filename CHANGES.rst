@@ -24,7 +24,7 @@ Release History
 
 **Improvements**
 
-- Added ``y0`` attribute to ``WhiteSignal``, which adjust the phase of each
+- Added ``y0`` attribute to ``WhiteSignal``, which adjusts the phase of each
   dimension to begin with absolute value closest to ``y0``.
   (`#1064 <https://github.com/nengo/nengo/pull/1064>`_)
 
