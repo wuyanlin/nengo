@@ -5,7 +5,7 @@ import numpy as np
 import nengo.utils.numpy as npext
 from nengo.exceptions import ValidationError
 from nengo.params import (
-    BoolParam, FrozenObject, IntParam, NumberParam, Parameter)
+    BoolParam, FrozenObject, IntParam, NdarrayParam, NumberParam, Parameter)
 
 
 def format_system(A, Y):
@@ -133,6 +133,7 @@ class Conjgrad(LeastSquaresSolver):
 
     tol = NumberParam('tol', low=0)
     maxiters = IntParam('maxiters', low=1, optional=True)
+    X0 = NdarrayParam('X0', shape=('*', '*'), optional=True)
 
     def __init__(self, tol=1e-2, maxiters=None, X0=None):
         super(Conjgrad, self).__init__()
@@ -142,14 +143,15 @@ class Conjgrad(LeastSquaresSolver):
 
     def __call__(self, A, Y, sigma, rng=None):
         Y, m, n, d, matrix_in = format_system(A, Y)
+        X = np.zeros((n, d)) if self.X0 is None else np.array(self.X0)
+        if X.shape != (n, d):
+            raise ValueError('X0 must be shape %s, got %s' % ((n, d), X.shape))
 
         damp = m * sigma**2
         rtol = self.tol * np.sqrt(m)
         G = lambda x: np.dot(A.T, np.dot(A, x)) + damp * x
         B = np.dot(A.T, Y)
 
-        X = (np.zeros((n, d)) if self.X0 is None else
-             np.array(self.X0).reshape((n, d)))
         iters = -np.ones(d, dtype='int')
         for i in range(d):
             X[:, i], iters[i] = self._conjgrad_iters(
@@ -196,6 +198,7 @@ class BlockConjgrad(LeastSquaresSolver):
     """Solve a multiple-RHS least-squares system using block conj. gradient."""
 
     tol = NumberParam('tol', low=0)
+    X0 = NdarrayParam('X0', shape=('*', '*'), optional=True)
 
     def __init__(self, tol=1e-2, X0=None):
         super(BlockConjgrad, self).__init__()
@@ -207,14 +210,16 @@ class BlockConjgrad(LeastSquaresSolver):
         sigma = np.asarray(sigma, dtype='float')
         sigma = sigma.reshape(sigma.size, 1)
 
+        X = np.zeros((n, d)) if self.X0 is None else np.array(self.X0)
+        if X.shape != (n, d):
+            raise ValueError('X0 must be shape %s, got %s' % ((n, d), X.shape))
+
         damp = m * sigma**2
         rtol = self.tol * np.sqrt(m)
         G = lambda x: np.dot(A.T, np.dot(A, x)) + damp * x
         B = np.dot(A.T, Y)
 
         # --- conjugate gradient
-        X = (np.zeros((n, d)) if self.X0 is None else
-             np.array(self.X0).reshape((n, d)))
         R = B - G(X)
         P = np.array(R)
         Rsold = np.dot(R.T, R)
