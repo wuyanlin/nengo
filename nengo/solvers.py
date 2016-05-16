@@ -28,6 +28,7 @@ class Solver(with_metaclass(DocstringInheritor, FrozenObject)):
     weights = BoolParam('weights')
 
     def __init__(self, weights=False):
+        super(Solver, self).__init__()
         self.weights = weights
 
     def __call__(self, A, Y, rng=None, E=None):
