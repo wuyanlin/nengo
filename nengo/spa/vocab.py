@@ -482,6 +482,7 @@ class Vocabulary(object):
 
 
 class VocabularyMap(Mapping):
+    """Maps dimensionalities to corresponding vocabularies."""
     def __init__(self, vocabs=None, rng=None):
         if vocabs is None:
             vocabs = []
