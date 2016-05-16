@@ -170,8 +170,9 @@ def test_whitesignal_y0(Simulator, seed, y0, d):
     with Simulator(model, seed=seed) as sim:
         sim.run(t)
     values = sim.data[up]
+    error = np.min(abs(y0 - values), axis=0)
 
-    assert np.allclose(values[0, :], y0, atol=1e-3)
+    assert ((y0 - error <= values[0, :]) & (values[0, :] <= y0 + error)).all()
 
 
 @pytest.mark.parametrize('high,dt', [(10, 0.01), (5, 0.001), (50, 0.001)])
