@@ -181,7 +181,7 @@ class DecoderCache(object):
         self.cache_dir = cache_dir
         safe_makedirs(self.cache_dir)
         self._fragment_size = get_fragment_size(self.cache_dir)
-        self._index = {}
+        self._index = None
         self._fd = None
 
     def _get_fd(self):
@@ -207,7 +207,7 @@ class DecoderCache(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         self._close_fd()
-        if hasattr(self._index, '__exit__'):
+        if self._index is not None:
             return self._index.__exit__(exc_type, exc_value, traceback)
 
     def get_files(self):
