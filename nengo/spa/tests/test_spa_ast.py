@@ -241,31 +241,3 @@ def test_zero_vector():
     ast = Parser().parse_effect('state = 0')
     ast.infer_types(model, None)
     assert ast.source.type.vocab == model.state.vocabs[d]
-
-
-# def test_actions():
-#     a = Actions(
-#         'dot(state, A) --> state=B',
-#         'dot(state, B) --> state=A',
-#         default='1.0 --> state=C',
-#     )
-#     assert a.count == 3
-#
-#     model = spa.Module()
-#     with model:
-#         model.state = spa.State(16)
-#     a.process(model)
-#     assert str(a.actions[0].condition) == 'dot(state, A)'
-#     assert str(a.actions[0].effect) == 'state=B'
-#     assert str(a.actions[1].condition) == 'dot(state, B)'
-#     assert str(a.actions[1].effect) == 'state=A'
-#     assert str(a.actions[2].condition) == '1.0'
-#     assert str(a.actions[2].effect) == 'state=C'
-#
-#     a.add('dot(state, D) --> state=E')
-#     a.add(added='dot(state, E) --> state=F')
-#     a.process(model)
-#     assert str(a.actions[2].condition) == 'dot(state, D)'
-#     assert str(a.actions[2].effect) == 'state=E'
-#     assert str(a.actions[3].condition) == 'dot(state, E)'
-#     assert str(a.actions[3].effect) == 'state=F'
