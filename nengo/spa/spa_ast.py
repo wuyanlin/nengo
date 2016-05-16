@@ -31,10 +31,10 @@ Once all the types have been determined, the AST can be used to construct
 Nengo objects to perform the operations represented with the AST. In this
 process each node in the syntax tree can create :class:`Artifact`s. These
 give generated Nengo objects to be connected to the appropriate places
-including the transform that should be used for that. This is necessary
-because at the time most objects are constructed we only know this constructed
-object and the transform, but not what it is supposed to connect to. So the
-final connection will be done by some other node in the syntax tree.
+including the transform that should be used on the connection. This is
+necessary because at the time most objects are constructed we only know this
+constructed object and the transform, but not what it is supposed to connect
+to. So the final connection will be done by some other node in the syntax tree.
 
 To avoid confusion with the normal Nengo build process, we use the term
 'construct' here.
