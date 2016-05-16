@@ -159,6 +159,21 @@ def test_whitesignal_rms(Simulator, rms, seed, plt):
     assert np.allclose(val_psd[1:-1], rms, rtol=0.35)
 
 
+@pytest.mark.parametrize('y0,d', [(0, 1), (-0.3, 3), (0.4, 1)])
+def test_whitesignal_y0(Simulator, seed, y0, d):
+    t = 1.
+    process = WhiteSignal(t, high=500, y0=y0)
+    with nengo.Network() as model:
+        u = nengo.Node(process, size_out=d)
+        up = nengo.Probe(u)
+
+    with Simulator(model, seed=seed) as sim:
+        sim.run(t)
+    values = sim.data[up]
+
+    assert np.allclose(values[0, :], y0, atol=1e-3)
+
+
 @pytest.mark.parametrize('high,dt', [(10, 0.01), (5, 0.001), (50, 0.001)])
 def test_whitesignal_high_dt(Simulator, high, dt, seed, plt):
     t = 1.
