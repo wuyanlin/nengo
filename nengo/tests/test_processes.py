@@ -161,7 +161,7 @@ def test_whitesignal_rms(Simulator, rms, seed, plt):
 
 @pytest.mark.parametrize('y0,d', [(0, 1), (-0.3, 3), (0.4, 1)])
 def test_whitesignal_y0(Simulator, seed, y0, d):
-    t = 1.
+    t = .1
     process = WhiteSignal(t, high=500, y0=y0)
     with nengo.Network() as model:
         u = nengo.Node(process, size_out=d)
