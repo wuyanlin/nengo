@@ -91,7 +91,24 @@ class Module(nengo.Network):
                                      "a SPA network" % (net))
 
     def get_module(self, name, strip_output=False):
-        """Return the module for the given name."""
+        """Return the module for the given name.
+
+        Raises :class:`SpaModuleError` if the module cannot be found.
+
+        Parameters
+        ----------
+        name : str
+            Name of the module to retrieve.
+        strip_output : bool, optional
+            If ``True``, the module name is allowed to be followed by the name
+            of an input or output that will be stripped (so the module with
+            that input or output will be returned).
+
+        Returns
+        -------
+        :class:`Module`
+            Requested module.
+        """
         try:
             components = name.split('.', 1)
             if len(components) > 1:
