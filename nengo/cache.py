@@ -16,7 +16,7 @@ from nengo.exceptions import FingerprintError, TimeoutError
 from nengo.rc import rc
 from nengo.utils import nco
 from nengo.utils.cache import byte_align, bytes2human, human2bytes
-from nengo.utils.compat import int_types, is_string, pickle, PY2
+from nengo.utils.compat import int_types, is_string, pickle, PY2, string_types
 from nengo.utils.lock import FileLock
 
 logger = logging.getLogger(__name__)
@@ -54,6 +54,10 @@ def safe_makedirs(path):
             logger.warning("OSError during safe_makedirs: %s", err)
 
 
+def check_dtype(ndarray):
+    return ndarray.dtype.isbuiltin == 1 and not ndarray.dtype.hasobject
+
+
 class Fingerprint(object):
     """Fingerprint of an object instance.
 
@@ -66,23 +70,40 @@ class Fingerprint(object):
     ----------
     obj : object
         Object to fingerprint.
+
+    Attributes
+    ----------
+    fingerprint : hash
+        A unique fingerprint for the object instance.
+
+    Notes
+    -----
+    Not all objects can be fingerprinted. In particular, custom classes are
+    tricky to fingerprint as their implementation can change without changing
+    its fingerprint, as the type and attributes may be the same.
+
+    In order to ensure that only safe object are fingerprinted, this class
+    maintains class attribute ``WHITELIST`` that contains all types that can
+    be safely fingerprinted.
+
+    If you want your custom class to be fingerprinted, call the
+    `.whitelist` class method and pass in your class.
     """
 
-    __slots__ = ['fingerprint']
+    __slots__ = ('fingerprint',)
 
-    NON_REFERENCE_TYPES = (
-        bool, float, complex, bytes, unicode, str) + int_types
-
+    WHITELIST = set(
+        (bool, float, complex, bytes, np.ndarray) + int_types + string_types)
+    CHECKS = {np.ndarray: check_dtype}
 
     def __init__(self, obj):
-        if not getattr(obj, 'supports_fingerprint', lambda: False)():
-            if (isinstance(obj, np.ndarray) and obj.dtype.isbuiltin == 1 and
-                    not obj.dtype.hasobject):
-                pass
-            elif obj.__class__ in self.NON_REFERENCE_TYPES:
-                pass
-            else:
-                raise FingerprintError("Does not support fingerprint.")
+        typ = type(obj)
+        not_in_whitelist = typ not in self.WHITELIST
+        failed_check = typ in self.CHECKS and not self.CHECKS[typ](obj)
+
+        if not_in_whitelist or failed_check:
+            raise FingerprintError("Object of type %r cannot be fingerprinted."
+                                   % type(obj).__name__)
 
         self.fingerprint = hashlib.sha1()
         try:
@@ -92,6 +113,12 @@ class Fingerprint(object):
 
     def __str__(self):
         return self.fingerprint.hexdigest()
+
+    @classmethod
+    def whitelist(cls, typ, fn=None):
+        cls.WHITELIST.add(typ)
+        if fn is not None:
+            cls.CHECKS[typ] = fn
 
 
 class CacheIndex(object):
@@ -375,8 +402,8 @@ class DecoderCache(object):
             try:
                 key = self._get_cache_key(
                     solver, neuron_type, gain, bias, x, targets, rng, E)
-            except FingerprintError:
-                logger.debug("Failed to generate cache key.")
+            except FingerprintError as e:
+                logger.debug("Failed to generate cache key: %s", e)
                 return solver_fn(
                     solver, neuron_type, gain, bias, x, targets, rng=rng, E=E)
 

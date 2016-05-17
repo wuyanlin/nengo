@@ -13,6 +13,7 @@ import time
 import numpy as np
 
 import nengo.utils.least_squares_solvers as lstsq
+from nengo.cache import Fingerprint
 from nengo.exceptions import ValidationError
 from nengo.params import BoolParam, NumberParam, Parameter
 from nengo.utils.compat import range, with_metaclass, iteritems
@@ -106,14 +107,6 @@ class Solver(with_metaclass(DocstringInheritor)):
                     "Encoders must be 'None' for decoder solver", attr='E')
             return Y.copy() if copy else Y
 
-    def supports_fingerprint(self):
-        return False
-
-
-class CacheableSolver(Solver):
-    def supports_fingerprint(self):
-        return True
-
 
 class SolverParam(Parameter):
     def validate(self, instance, solver):
@@ -123,7 +116,7 @@ class SolverParam(Parameter):
         super(SolverParam, self).validate(instance, solver)
 
 
-class Lstsq(CacheableSolver):
+class Lstsq(Solver):
     """Unregularized least-squares solver.
 
     Parameters
@@ -188,9 +181,6 @@ class _LstsqNoiseSolver(Solver):
         self.noise = noise
         self.solver = solver
 
-    def supports_fingerprint(self):
-        return self.solver.supports_fingerprint()
-
 
 class LstsqNoise(_LstsqNoiseSolver):
     """Least-squares solver with additive Gaussian white noise."""
@@ -248,9 +238,6 @@ class _LstsqL2Solver(Solver):
         self.reg = reg
         self.solver = solver
 
-    def supports_fingerprint(self):
-        return self.solver.supports_fingerprint()
-
 
 class LstsqL2(_LstsqL2Solver):
     """Least-squares solver with L2 regularization."""
@@ -282,7 +269,7 @@ class LstsqL2nz(_LstsqL2Solver):
         return self.mul_encoders(X, E), info
 
 
-class LstsqL1(CacheableSolver):
+class LstsqL1(Solver):
     """Least-squares solver with L1 and L2 regularization (elastic net).
 
     This method is well suited for creating sparse decoders or weight matrices.
@@ -414,12 +401,8 @@ class LstsqDrop(Solver):
                 'time': t}
         return X if matrix_in else X.flatten(), info
 
-    def supports_fingerprint(self):
-        return (self.solver1.supports_fingerprint() and
-                self.solver2.supports_fingerprint())
 
-
-class Nnls(CacheableSolver):
+class Nnls(Solver):
     """Non-negative least-squares solver without regularization.
 
     Similar to `.Lstsq`, except the output values are non-negative.
@@ -519,3 +502,19 @@ class NnlsL2nz(NnlsL2):
         sigma = (self.reg * A.max()) * np.sqrt((A > 0).mean(axis=0))
         sigma[sigma == 0] = 1
         return self._solve(A, Y, rng, E, sigma=sigma)
+
+
+# Code below is specific to the Nengo reference backend
+def check_subsolver(solver):
+    return type(solver.solver) in Fingerprint.WHITELIST
+
+
+def check_subsolvers(solver):
+    return (type(solver.solver1) in Fingerprint.WHITELIST
+            and type(solver.solver2) in Fingerprint.WHITELIST)
+
+for klass in (Lstsq, LstsqL1, Nnls, NnlsL2, NnlsL2nz):
+    Fingerprint.whitelist(klass)
+for klass in (LstsqNoise, LstsqMultNoise, LstsqL2, LstsqL2nz):
+    Fingerprint.whitelist(klass, fn=check_subsolver)
+Fingerprint.whitelist(LstsqDrop, fn=check_subsolvers)

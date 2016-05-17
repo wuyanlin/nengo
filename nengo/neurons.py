@@ -4,6 +4,7 @@ import logging
 
 import numpy as np
 
+from nengo.cache import Fingerprint
 from nengo.exceptions import SimulationError, ValidationError
 from nengo.params import Parameter, NumberParam, FrozenObject
 from nengo.utils.compat import range
@@ -129,16 +130,8 @@ class NeuronType(FrozenObject):
         """
         raise NotImplementedError("Neurons must provide step_math")
 
-    def supports_fingerprint(self):
-        return False
 
-
-class CacheableNeuronType(NeuronType):
-    def supports_fingerprint(self):
-        return True
-
-
-class Direct(CacheableNeuronType):
+class Direct(NeuronType):
     """Signifies that an ensemble should simulate in direct mode.
 
     In direct mode, the ensemble represents and transforms signals perfectly,
@@ -168,7 +161,7 @@ class Direct(CacheableNeuronType):
 #       but still simulate very fast
 
 
-class RectifiedLinear(CacheableNeuronType):
+class RectifiedLinear(NeuronType):
     """A rectified linear neuron model.
 
     Each neuron is modeled as a rectified line. That is, the neuron's activity
@@ -189,7 +182,7 @@ class RectifiedLinear(CacheableNeuronType):
         output[...] = np.maximum(0., J)
 
 
-class Sigmoid(CacheableNeuronType):
+class Sigmoid(NeuronType):
     """A neuron model whose response curve is a sigmoid."""
 
     probeable = ('rates',)
@@ -217,7 +210,7 @@ class Sigmoid(CacheableNeuronType):
         output[...] = (1. / self.tau_ref) / (1.0 + np.exp(-J))
 
 
-class LIFRate(CacheableNeuronType):
+class LIFRate(NeuronType):
     """Non-spiking version of the leaky integrate-and-fire (LIF) neuron model.
 
     Parameters
@@ -429,7 +422,7 @@ class AdaptiveLIF(AdaptiveLIFRate, LIF):
         n += (dt / self.tau_n) * (self.inc_n * output - n)
 
 
-class Izhikevich(CacheableNeuronType):
+class Izhikevich(NeuronType):
     """Izhikevich neuron model.
 
     This implementation is based on the original paper [1]_;
@@ -538,3 +531,10 @@ class NeuronTypeParam(Parameter):
             raise ValidationError("'%s' is not a neuron type" % neurons,
                                   attr=self.name, obj=instance)
         super(NeuronTypeParam, self).validate(instance, neurons)
+
+
+# Code below is specific to the Nengo reference backend
+fingerprintable = (AdaptiveLIF, AdaptiveLIFRate, Direct, Izhikevich, LIF,
+                   LIFRate, RectifiedLinear, Sigmoid)
+for klass in fingerprintable:
+    Fingerprint.whitelist(klass)

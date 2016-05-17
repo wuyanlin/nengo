@@ -137,7 +137,6 @@ def test_decoder_cache_size_includes_overhead(tmpdir):
 
 
 def test_decoder_cache_shrinking(tmpdir):
-    nengo.log('debug')
     cache_dir = str(tmpdir)
     solver_mock = SolverMock()
     another_solver = SolverMock()
@@ -227,16 +226,14 @@ class DummyA(object):
     def __init__(self, attr=0):
         self.attr = attr
 
-    def supports_fingerprint(self):
-        return True
+nengo.cache.Fingerprint.whitelist(DummyA)
 
 
 class DummyB(object):
     def __init__(self, attr=0):
         self.attr = attr
 
-    def supports_fingerprint(self):
-        return True
+nengo.cache.Fingerprint.whitelist(DummyB)
 
 
 def dummy_fn(arg):
@@ -271,7 +268,6 @@ def test_fingerprinting(reference, equal, different):
 def test_unsupported_fingerprinting(obj):
     with pytest.raises(FingerprintError):
         Fingerprint(obj)
-
 
 
 def test_fails_for_lambda_expression():

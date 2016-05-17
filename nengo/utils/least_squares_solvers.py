@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import numpy as np
 
 import nengo.utils.numpy as npext
+from nengo.cache import Fingerprint
 from nengo.exceptions import ValidationError
 from nengo.params import Parameter
 
@@ -26,16 +27,8 @@ class LeastSquaresSolver(object):
     def __call__(self, A, y, sigma, rng=None):
         raise NotImplementedError("LeastSquaresSolver must implement call")
 
-    def supports_fingerprint(self):
-        return False
 
-
-class CacheableLeastSquaresSolver(LeastSquaresSolver):
-    def supports_fingerprint(self):
-        return True
-
-
-class Cholesky(CacheableLeastSquaresSolver):
+class Cholesky(LeastSquaresSolver):
     """Solve a least-squares system using the Cholesky decomposition."""
 
     def __init__(self, transpose=None):
@@ -74,7 +67,7 @@ class Cholesky(CacheableLeastSquaresSolver):
         return x, info
 
 
-class ConjgradScipy(CacheableLeastSquaresSolver):
+class ConjgradScipy(LeastSquaresSolver):
     """Solve a least-squares system using Scipy's conjugate gradient."""
 
     def __init__(self, tol=1e-4):
@@ -105,7 +98,7 @@ class ConjgradScipy(CacheableLeastSquaresSolver):
         return X if matrix_in else X.flatten(), info
 
 
-class LSMRScipy(CacheableLeastSquaresSolver):
+class LSMRScipy(LeastSquaresSolver):
     """Solve a least-squares system using Scipy's LSMR."""
 
     def __init__(self, tol=1e-4):
@@ -126,7 +119,7 @@ class LSMRScipy(CacheableLeastSquaresSolver):
         return X if matrix_in else X.flatten(), info
 
 
-class Conjgrad(CacheableLeastSquaresSolver):
+class Conjgrad(LeastSquaresSolver):
     """Solve a least-squares system using conjugate gradient."""
 
     def __init__(self, tol=1e-2, maxiters=None, X0=None):
@@ -186,7 +179,7 @@ class Conjgrad(CacheableLeastSquaresSolver):
         return x, i+1
 
 
-class BlockConjgrad(CacheableLeastSquaresSolver):
+class BlockConjgrad(LeastSquaresSolver):
     """Solve a multiple-RHS least-squares system using block conj. gradient."""
 
     def __init__(self, tol=1e-2, X0=None):
@@ -230,7 +223,7 @@ class BlockConjgrad(CacheableLeastSquaresSolver):
         return X if matrix_in else X.flatten(), info
 
 
-class SVD(CacheableLeastSquaresSolver):
+class SVD(LeastSquaresSolver):
     """Solve a least-squares system using full SVD."""
 
     def __call__(self, A, Y, sigma, rng=None):
@@ -242,7 +235,7 @@ class SVD(CacheableLeastSquaresSolver):
         return X if matrix_in else X.flatten(), info
 
 
-class RandomizedSVD(CacheableLeastSquaresSolver):
+class RandomizedSVD(LeastSquaresSolver):
     """Solve a least-squares system using a randomized (partial) SVD.
 
     Parameters
@@ -291,3 +284,10 @@ class LeastSquaresSolverParam(Parameter):
                 "(see ``nengo.solvers.lstsq`` for options)" % solver,
                 attr=self.name, obj=instance)
         super(LeastSquaresSolverParam, self).validate(instance, solver)
+
+
+# Code below is specific to the Nengo reference backend
+fingerprintable = (Cholesky, ConjgradScipy, LSMRScipy, Conjgrad, BlockConjgrad,
+                   SVD, RandomizedSVD)
+for klass in fingerprintable:
+    Fingerprint.whitelist(klass)
